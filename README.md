@@ -1,6 +1,6 @@
 # Central_Line_Challenge
 ### Training Data:
-Training data can be downloaded using the following links. Links are password protected and will only be available until May 6th, 2022.  
+Training data can be downloaded in 4 parts using the following links. Download links are password protected and will only be available until May 6th, 2022.  
 Registered participants will receive the password via email.
 
 [Part 1](https://tinyurl.com/5drkkcrk)  
