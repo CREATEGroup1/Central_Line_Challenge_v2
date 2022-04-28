@@ -47,7 +47,6 @@ class Predict_CNN_LSTM:
                     print(nothingIndex[0][0])
                     network.imageSequence[:, nothingIndex[0][0]] = numpy.ones((self.sequenceLength,))
                     initialFolder = self.dataCSVFile["Folder"][i]
-                    previousTask = "nothing"
                 image = cv2.imread(os.path.join(self.dataCSVFile["Folder"][i],self.dataCSVFile["FileName"][i]))
                 taskPrediction,toolLabel = network.predict(image)
                 taskLabel,confidences = taskPrediction.split('[[')

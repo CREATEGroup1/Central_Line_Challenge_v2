@@ -252,7 +252,7 @@ class Train_CNN_LSTM:
             self.lstm_learning_rate = FLAGS.lstm_learning_rate
             self.cnn_optimizer = tensorflow.keras.optimizers.Adam(learning_rate=self.cnn_learning_rate)
             self.lstm_optimizer = tensorflow.keras.optimizers.Adam(learning_rate=self.lstm_learning_rate)
-            self.loss_Function = focal_loss_fixed #FLAGS.loss_function
+            self.loss_Function = FLAGS.loss_function
             self.metrics = FLAGS.metrics.split(",")
             network = CNN_LSTM.CNN_LSTM()
             if not os.path.exists(self.saveLocation):
@@ -261,12 +261,6 @@ class Train_CNN_LSTM:
             toolLabelName = "Tool"
 
             TrainIndexes, ValIndexes = self.loadData(self.validation_percentage, self.dataCSVFile)
-            '''TrainData = self.dataCSVFile.iloc[TrainIndexes]
-            balancedTrainData = self.balanceDataset(TrainData)
-            balancedTrainDataIndexes = balancedTrainData.index
-            ValData = self.dataCSVFile.iloc[ValIndexes]
-            balancedValData = self.balanceDataset(ValData)
-            balancedValDataIndexes = balancedValData.index'''
 
             cnnTrainDataSet = CNNSequence(self.dataCSVFile, TrainIndexes, self.batch_size, toolLabelName)
             cnnValDataSet = CNNSequence(self.dataCSVFile, ValIndexes, self.batch_size, toolLabelName)
@@ -298,9 +292,6 @@ class Train_CNN_LSTM:
 
             self.lstmLabelValues = numpy.array(sorted(self.dataCSVFile[taskLabelName].unique()))
             numpy.savetxt(os.path.join(self.saveLocation, "lstm_labels.txt"), self.lstmLabelValues, fmt='%s', delimiter=',')
-
-            '''lstmTrainSequences = self.getBalancedSequences(lstmTrainSequences)
-            lstmValSequences = self.getBalancedSequences(lstmValSequences)'''
 
             inputs = self.readImages([os.path.join(self.dataCSVFile["Folder"][x], self.dataCSVFile["FileName"][x]) for x in self.dataCSVFile.index],cnnModel)
             lstmTrainDataSet = LSTMSequence(self.dataCSVFile, inputs, lstmTrainSequences, cnnModel, self.batch_size, taskLabelName)
@@ -402,40 +393,6 @@ if __name__ == '__main__':
       default='accuracy',
       help='Metrics used to evaluate model.'
   )
-
-
-def focal_loss_fixed(y_true, y_pred):
-    """Focal loss for multi-classification
-    FL(p_t)=-alpha(1-p_t)^{gamma}ln(p_t)
-    Notice: y_pred is probability after softmax
-    gradient is d(Fl)/d(p_t) not d(Fl)/d(x) as described in paper
-    d(Fl)/d(p_t) * [p_t(1-p_t)] = d(Fl)/d(x)
-    Focal Loss for Dense Object Detection
-    https://arxiv.org/abs/1708.02002
-
-    Arguments:
-        y_true {tensor} -- ground truth labels, shape of [batch_size, num_cls]
-        y_pred {tensor} -- model's output, shape of [batch_size, num_cls]
-
-    Keyword Arguments:
-        gamma {float} -- (default: {2.0})
-        alpha {float} -- (default: {4.0})
-
-    Returns:
-        [tensor] -- loss.
-    """
-    alpha = 1.0
-    gamma = 4.0
-    epsilon = 1.e-9
-    y_true = tensorflow.convert_to_tensor(y_true, tensorflow.float32)
-    y_pred = tensorflow.convert_to_tensor(y_pred, tensorflow.float32)
-
-    model_out = tensorflow.add(y_pred, epsilon)
-    ce = tensorflow.multiply(y_true, -K.log(model_out))
-    weight = tensorflow.multiply(y_true, K.pow(tensorflow.subtract(1., model_out), gamma))
-    fl = tensorflow.multiply(alpha, tensorflow.multiply(weight, ce))
-    reduced_fl = tensorflow.reduce_max(fl, axis=1)
-    return tensorflow.reduce_mean(reduced_fl)
 
 FLAGS, unparsed = parser.parse_known_args()
 tm = Train_CNN_LSTM()
