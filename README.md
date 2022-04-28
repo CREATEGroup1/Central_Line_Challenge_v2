@@ -37,4 +37,5 @@ cd <path_to_repository>
 python prepareDataset.py --compressed_location=C:/Users/UserName/Downloads --target_location=C:/Users/UserName/Documents/CreateChallenge --dataset_type=Train  
 ```  
 To prepare the test set, follow the same steps, but change the --dataset_type flag to Test  
+  
 If the code is executed correctly, you should see a new directory in your target location called either Training_Data or Test_Data. These directories will contain a set of subdirectories (one for each video) that contain the images and labels. Within that folder you will also see a csv file that contains a compiled list of all images and labels within the dataset. (Note: there will not be any labels for the test images).  
