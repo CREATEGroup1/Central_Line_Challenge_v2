@@ -5,7 +5,6 @@ import gc
 import cv2
 import pandas
 from tensorflow.keras.utils import Sequence
-import girder_client
 from sklearn.utils import shuffle
 import random
 

@@ -4,7 +4,6 @@ import numpy
 import random
 import pandas
 import argparse
-import girder_client
 import tensorflow
 import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping,ModelCheckpoint,LearningRateScheduler
