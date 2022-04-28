@@ -119,9 +119,11 @@ class Train_CNN:
         newCSV = pandas.DataFrame(columns=self.dataCSVFile.columns)
         resampledTrainSet = self.balanceDataset(trainSet)
         sortedTrain = resampledTrainSet.sort_values(by=['FileName'])
+        sortedTrain["Set"] = ["Train" for i in sortedTrain.index]
         newCSV = newCSV.append(sortedTrain, ignore_index=True)
         resampledValSet = self.balanceDataset(valSet)
         sortedVal = resampledValSet.sort_values(by=['FileName'])
+        sortedVal["Set"] = ["Validation" for i in sortedVal.index]
         newCSV = newCSV.append(sortedVal, ignore_index=True)
         print("Resampled Train Counts")
         print(resampledTrainSet["Tool"].value_counts())
@@ -143,6 +145,7 @@ class Train_CNN:
             self.numEpochs = FLAGS.num_epochs_cnn
             self.batch_size = FLAGS.batch_size
             self.cnn_learning_rate = FLAGS.cnn_learning_rate
+            self.balanceCNN = FLAGS.balance_CNN_Data
             self.cnn_optimizer = tensorflow.keras.optimizers.Adam(learning_rate=self.cnn_learning_rate)
             self.loss_Function = FLAGS.loss_function
             self.metrics = FLAGS.metrics.split(",")
@@ -152,6 +155,14 @@ class Train_CNN:
             toolLabelName = "Tool"
 
             TrainIndexes, ValIndexes = self.loadData(self.validation_percentage, self.dataCSVFile)
+            if self.balanceCNN:
+                trainData = self.dataCSVFile.iloc[TrainIndexes]
+                valData = self.dataCSVFile.iloc[ValIndexes]
+                self.dataCSVFile = self.createBalancedCNNDataset(trainData,valData)
+                balancedTrainData = self.dataCSVFile.loc[self.dataCSVFile["Set"]=="Train"]
+                balancedValData = self.dataCSVFile.loc[self.dataCSVFile["Set"]=="Validation"]
+                TrainIndexes = balancedTrainData.index
+                ValIndexes = balancedValData.index
 
             cnnTrainDataSet = CNNSequence(self.dataCSVFile, TrainIndexes, self.batch_size, toolLabelName)
             cnnValDataSet = CNNSequence(self.dataCSVFile, ValIndexes, self.batch_size, toolLabelName)
@@ -213,8 +224,14 @@ if __name__ == '__main__':
   parser.add_argument(
       '--cnn_learning_rate',
       type=float,
-      default=0.000001,
+      default=0.00001,
       help='Learning rate used in training cnn network'
+  )
+  parser.add_argument(
+      '--balance_CNN_Data',
+      type=bool,
+      default=False,
+      help='Whether or not to balance the data used in training'
   )
   parser.add_argument(
       '--loss_function',

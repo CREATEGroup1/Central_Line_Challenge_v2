@@ -150,13 +150,15 @@ class Train_CNN_LSTM:
         print(balancedFold["Tool"].value_counts())
         return balancedFold
 
-    def createBalancedCNNDataset(self,trainSet,valSet):
+    def createBalancedCNNDataset(self, trainSet, valSet):
         newCSV = pandas.DataFrame(columns=self.dataCSVFile.columns)
         resampledTrainSet = self.balanceDataset(trainSet)
         sortedTrain = resampledTrainSet.sort_values(by=['FileName'])
+        sortedTrain["Set"] = ["Train" for i in sortedTrain.index]
         newCSV = newCSV.append(sortedTrain, ignore_index=True)
         resampledValSet = self.balanceDataset(valSet)
         sortedVal = resampledValSet.sort_values(by=['FileName'])
+        sortedVal["Set"] = ["Validation" for i in sortedVal.index]
         newCSV = newCSV.append(sortedVal, ignore_index=True)
         print("Resampled Train Counts")
         print(resampledTrainSet["Tool"].value_counts())
@@ -249,6 +251,8 @@ class Train_CNN_LSTM:
             self.downsampling = FLAGS.downsampling_rate
             self.cnn_learning_rate = FLAGS.cnn_learning_rate
             self.lstm_learning_rate = FLAGS.lstm_learning_rate
+            self.balanceCNN = FLAGS.balance_CNN_Data
+            self.balanceLSTM = FLAGS.balance_LSTM_Data
             self.cnn_optimizer = tensorflow.keras.optimizers.Adam(learning_rate=self.cnn_learning_rate)
             self.lstm_optimizer = tensorflow.keras.optimizers.Adam(learning_rate=self.lstm_learning_rate)
             self.loss_Function = FLAGS.loss_function
@@ -260,14 +264,20 @@ class Train_CNN_LSTM:
             toolLabelName = "Tool"
 
             TrainIndexes, ValIndexes = self.loadData(self.validation_percentage, self.dataCSVFile)
+            if self.balanceCNN:
+                trainData = self.dataCSVFile.iloc[TrainIndexes]
+                valData = self.dataCSVFile.iloc[ValIndexes]
+                self.dataCSVFile = self.createBalancedCNNDataset(trainData, valData)
+                balancedTrainData = self.dataCSVFile.loc[self.dataCSVFile["Set"] == "Train"]
+                balancedValData = self.dataCSVFile.loc[self.dataCSVFile["Set"] == "Validation"]
+                TrainIndexes = balancedTrainData.index
+                ValIndexes = balancedValData.index
 
             cnnTrainDataSet = CNNSequence(self.dataCSVFile, TrainIndexes, self.batch_size, toolLabelName)
             cnnValDataSet = CNNSequence(self.dataCSVFile, ValIndexes, self.batch_size, toolLabelName)
 
-
             cnnLabelValues = numpy.array(sorted(self.dataCSVFile[toolLabelName].unique()))
             numpy.savetxt(os.path.join(self.saveLocation,"cnn_labels.txt"),cnnLabelValues,fmt='%s',delimiter=',')
-
 
             cnnModel = network.createCNNModel((224,224,3),num_classes=len(cnnLabelValues))
             cnnModel.compile(optimizer = self.cnn_optimizer, loss = self.loss_Function, metrics = self.metrics)
@@ -288,6 +298,10 @@ class Train_CNN_LSTM:
 
             allSequences = self.splitDatasetIntoSequences(self.dataCSVFile.index, sequenceLength=self.sequenceLength,downsampling=self.downsampling)
             lstmTrainSequences,lstmValSequences = sklearn.model_selection.train_test_split(allSequences,test_size=self.validation_percentage)
+
+            if self.balanceLSTM:
+                lstmTrainSequences = self.getBalancedSequences(lstmTrainSequences)
+                lstmValSequences = self.getBalancedSequences(lstmValSequences)
 
             self.lstmLabelValues = numpy.array(sorted(self.dataCSVFile[taskLabelName].unique()))
             numpy.savetxt(os.path.join(self.saveLocation, "lstm_labels.txt"), self.lstmLabelValues, fmt='%s', delimiter=',')
@@ -379,6 +393,18 @@ if __name__ == '__main__':
       type=float,
       default=0.0001,
       help='Learning rate used in training lstm network'
+  )
+  parser.add_argument(
+      '--balance_CNN_Data',
+      type=bool,
+      default=False,
+      help='Whether or not to balance the data by class when training the CNN'
+  )
+  parser.add_argument(
+      '--balance_LSTM_Data',
+      type=bool,
+      default=False,
+      help='Whether or not to balance the data by class when training the LSTM'
   )
   parser.add_argument(
       '--loss_function',
