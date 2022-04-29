@@ -318,7 +318,7 @@ class Train_CNN_LSTM:
             earlyStoppingCallback = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
 
             lstmModel = network.createSingleLSTMModel(self.sequenceLength, cnnNumClasses = len(cnnLabelValues),numOutputClasses=len(self.lstmLabelValues))
-            lstmModel.compile(optimizer=self.lstm_optimizer, loss=self.loss_Function, metrics=self.metrics)
+            lstmModel.compile(optimizer=self.lstm_optimizer, loss=self.loss_Function, metrics=self.metrics,run_eagerly=False)
 
             history = lstmModel.fit(x=lstmTrainDataSet,
                                    validation_data=lstmValDataSet,
@@ -385,7 +385,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--cnn_learning_rate',
       type=float,
-      default=0.0000001,
+      default=0.00001,
       help='Learning rate used in training cnn network'
   )
   parser.add_argument(
