@@ -69,7 +69,7 @@ class Faster_RCNN():
         self.model_classifier = None
         self.class_mapping = {}
     
-    def loadModel(self,modelFolder,model_name):
+    def loadModel(self,modelFolder):
         with open(os.path.join(modelFolder,"config.pickle"), 'rb') as f_in:
             self.C = pickle.load(f_in)
 
@@ -87,7 +87,7 @@ class Faster_RCNN():
 
         self.class_mapping = {v: k for k, v in self.class_mapping.items()}
         self.C.num_rois = int(self.num_rois)
-        #self.C.num_rois = 100
+        self.C.num_rois = 100
 
         if self.C.network == 'resnet50':
             num_features = 1024
@@ -194,7 +194,7 @@ class Faster_RCNN():
         # get the feature maps and output from the RPN
         [Y1, Y2, F] = self.model_rpn.predict(X)
 
-        R = roi_helpers.rpn_to_roi(Y1, Y2, self.C, overlap_thresh=0.7)
+        R = roi_helpers.rpn_to_roi(Y1, Y2, self.C, overlap_thresh=0.7,max_boxes=50)
 
         # convert from (x1,y1,x2,y2) to (x,y,w,h)
         R[:, 2] -= R[:, 0]
@@ -262,7 +262,6 @@ class Faster_RCNN():
             (real_x1, real_y1, real_x2, real_y2) = self.get_real_coordinates(ratio, x1, y1, x2, y2)
             networkOutput.append({"class": key, "xmin": real_x1, "xmax": real_x2, "ymin": real_y1, "ymax": real_y2})
 
-        gc.collect()
         return networkOutput
 
     def createModel(self,num_classes):

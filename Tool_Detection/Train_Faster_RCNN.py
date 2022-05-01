@@ -526,7 +526,7 @@ class Train_Faster_RCNN:
             network.im_size=224
 
             #C.model_path = options.output_weight_path #foldDir
-            network.num_rois = int(10)
+            network.num_rois = int(100)
 
             # check if weight path was passed via command line
 
@@ -653,8 +653,6 @@ class Train_Faster_RCNN:
 
             self.model_rpn.load_weights(os.path.join(foldDir, 'frcnn.hdf5'), by_name=True)
             self.model_classifier.load_weights(os.path.join(foldDir, 'frcnn.hdf5'), by_name=True)
-            self.testOneEpoch(0,test_epoch_length,data_gen_test,network,rpn_accuracy_rpn_monitor_test,labelName,testSet = True)
-            #network.saveModel(self.model_all,foldDir)
             self.saveTrainingInfo(foldDir,self.history)
             self.saveTrainingPlot(foldDir,self.history,"loss")
             for metric in self.metrics:

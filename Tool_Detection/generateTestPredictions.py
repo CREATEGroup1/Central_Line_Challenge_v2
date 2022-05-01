@@ -32,7 +32,7 @@ class Predict_Faster_RCNN:
             predictions["FileName"] = self.dataCSVFile["FileName"]
             predictions["Time Recorded"] = self.dataCSVFile["Time Recorded"]
             for i in self.dataCSVFile.index:
-                if i%500 == 0 or i==len(self.dataCSVFile.index)-1:
+                if i%10 == 0 or i==len(self.dataCSVFile.index)-1:
                     print("{}/{} predictions generated".format(i,len(self.dataCSVFile.index)))
                 image = cv2.imread(os.path.join(self.dataCSVFile["Folder"][i],self.dataCSVFile["FileName"][i]))
                 toolBoundingBoxes = network.predict(image)
