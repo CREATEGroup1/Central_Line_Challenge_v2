@@ -72,9 +72,6 @@ class Faster_RCNN():
     def loadModel(self,modelFolder,model_name):
         with open(os.path.join(modelFolder,"config.pickle"), 'rb') as f_in:
             self.C = pickle.load(f_in)
-        '''self.C.use_horizontal_flips = False
-        self.C.use_vertical_flips = False
-        self.C.rot_90 = False'''
 
         if self.C.network == 'resnet50':
             import keras_frcnn.resnet as nn
@@ -124,9 +121,6 @@ class Faster_RCNN():
 
         self.model_rpn.compile(optimizer='sgd', loss='mse')
         self.model_classifier.compile(optimizer='sgd', loss='mse')
-
-        print("Ratios: {}".format(self.C.anchor_box_ratios))
-        print("Scales: {}".format(self.C.anchor_box_scales))
             
     def loadRegionProposalNetwork(self,modelFolder):
         weightsFileName = 'frcnn.hdf5'
@@ -190,9 +184,6 @@ class Faster_RCNN():
 
     def predict(self,image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        #image = cv2.flip(image,0)
-        #croppedImg = image[225:435, 275:575]
-        #image = cv2.resize(croppedImg, (640, 480))
         bbox_threshold = 0.6
         allConfs = {}
 
@@ -267,32 +258,11 @@ class Faster_RCNN():
                                                                                       allConfs[key], overlap_thresh=0.5)
 
             bestProbIndex = numpy.argmax(new_probs)
-            print(key)
-            #boxesAboveThresholdInds = numpy.where(new_probs > 0.60)
-            #boxesAboveThreshold = new_boxes[boxesAboveThresholdInds,:]
-            #boxesAboveThreshold = boxesAboveThreshold[0]
-            #for bestProbIndex in range(len(new_probs)):
             (x1, y1, x2, y2) = new_boxes[bestProbIndex, :]
-            '''if boxesAboveThreshold.shape[0] > 0:
-                (x1, y1, _, _) = numpy.min(boxesAboveThreshold,axis=0)
-                (_, _, x2, y2) = numpy.max(boxesAboveThreshold, axis=0)'''
             (real_x1, real_y1, real_x2, real_y2) = self.get_real_coordinates(ratio, x1, y1, x2, y2)
-            #networkOutput.append({"class": key, "xmin": real_x1, "xmax": real_x2, "ymin": real_y1, "ymax": real_y2})
-            image = cv2.rectangle(image,(real_x1,real_y1),(real_x2,real_y2),(255,0,0),2)
-            #del boxesAboveThreshold
-
-            '''curr_bestProb = 0
-            for jk in range(new_boxes.shape[0]):
-                if new_probs[jk] > curr_bestProb and new_probs[jk] > 0.1:
-                    curr_bestProb = new_probs[jk]
-                    (x1, y1, x2, y2) = new_boxes[jk, :]
-
-                    (real_x1, real_y1, real_x2, real_y2) = self.get_real_coordinates(ratio, x1, y1, x2, y2)
-                    networkOutput.append({"class":key,"xmin":real_x1,"xmax":real_x2,"ymin":real_y1,"ymax":real_y2})'''
+            networkOutput.append({"class": key, "xmin": real_x1, "xmax": real_x2, "ymin": real_y1, "ymax": real_y2})
 
         gc.collect()
-        networkOutput = image.astype(numpy.uint8)
-        networkOutput = cv2.flip(networkOutput, 0)
         return networkOutput
 
     def createModel(self,num_classes):

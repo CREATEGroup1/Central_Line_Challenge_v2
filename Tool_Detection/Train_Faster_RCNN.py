@@ -110,7 +110,7 @@ class Train_Faster_RCNN:
                 else:
                     dataCSV = dataCSV.drop(i)
         if self.balanceDataset:
-            dataCSV,classes_count = self.balanceSamples(dataCSV,class_indexes,minCount=500)
+            dataCSV,classes_count = self.balanceSamples(dataCSV,class_indexes)
         imageMeans = self.getImageMeans(dataCSV)
         dataCSV.index = [i for i in range(len(dataCSV.index))]
         numericClassNames = [x for x in range(len(class_names))]
@@ -496,7 +496,7 @@ class Train_Faster_RCNN:
             self.metrics = FLAGS.metrics.split(",")
             self.gClient = None
             self.selectedLabels = None
-            self.balanceDataset = True
+            self.balanceDataset = False
             self.patience = 3
             self.validation_percentage = FLAGS.validation_percentage
             network = Faster_RCNN.Faster_RCNN()
