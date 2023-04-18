@@ -37,10 +37,10 @@ Download links are password protected and will only be available until May 6th, 
 Training data can be downloaded in 4 parts using the following links: [Part 1](https://tinyurl.com/5drkkcrk), [Part 2](https://tinyurl.com/pthcvjfk), [Part 3](https://tinyurl.com/5n8mbbt4), [Part 4](https://tinyurl.com/4f7zwt6s)  
   
 #### Test Data:
-Test data can be downloaded using the following link on May 5th, 2022: [Test Data]()
+Test data can be downloaded using the following link on May 5th, 2022: [Test Data](https://tinyurl.com/2p94danr)
 
 ## Prepare Dataset for Training
-Once all parts of the dataset have been downloaded for training, donwload code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
+Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
 ```
 conda activate createKerasEnv  
 cd <path_to_repository>  
