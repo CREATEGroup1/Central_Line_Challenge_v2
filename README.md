@@ -31,13 +31,13 @@ cd C:/Users/SampleUser/Documents
 git clone https://github.com/CREATE-Table-Top-Challenge/Central_Line_Challenge.git
 ```
 ## Download Data
-Download links are password protected and will only be available until May 6th, 2022. Registered participants will receive the password via email on May 2nd, 2022.  
+Download links are password protected and will only be available until May 5th, 2023. Registered participants will receive the password via email on April 24th, 2022.  
   
 #### Training Data:
 Training data can be downloaded in 4 parts using the following links: [Part 1](https://tinyurl.com/5drkkcrk), [Part 2](https://tinyurl.com/pthcvjfk), [Part 3](https://tinyurl.com/5n8mbbt4), [Part 4](https://tinyurl.com/4f7zwt6s)  
   
 #### Test Data:
-Test data can be downloaded using the following link on May 5th, 2022: [Test Data](https://tinyurl.com/2p94danr)
+Test data can be downloaded using the following link on May 4th, 2023: [Test Data](https://tinyurl.com/2p94danr)
 
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
@@ -58,33 +58,11 @@ conda activate createKerasEnv
 Next select which network you would like to run. 
   
 One baseline network has been provided for each subtask of the challenge:  
-### Subtask 1: Active tool classification
-Baseline network folder: Tool Recognition    
-Model: ResNet50  
-Inputs: single image  
-Outputs: (9,1) softmax output  
-  
-Train the network (replace paths as necessary):
-```
-python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Recognition/Train_CNN.py --save_location=C:/Users/SampleUser/Documents/toolRecognitionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
-```
-#### Required flags:
---save_location:   The folder where the trained model and all training information will be saved  
---data_csv_file:   File containing all files and labels to be used for training  
-#### Optional flags:
---num_epochs_cnn: Number of epochs to run (int)  
---validation_percentage: The percentage of data to be reserved for validation (float, range: 0-1)  
---batch_size: Number of images to be processed per batch (int)  
---cnn_learning_rate: Learning rate used for loss function optimization (float)  
---balance_CNN_Data: Balance the number of samples from each class (bool, True or False)  
---loss_function: loss function to optimize during training (str)  
---metrics: metrics used to evaluate the model (str)  
-
-### Subtask 2: Surgical tool localization/ detection
+### Subtask 1: Surgical tool localization/ detection
 Baseline network folder: Tool Detection    
-Model: Faster-RCNN   
+Model: Yolo-v3   
 Inputs: single image  
-Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int}   
+Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int, 'conf': float}   
   
 Train the network (replace paths as necessary):
 ```
