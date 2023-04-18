@@ -31,9 +31,9 @@ class Train_Faster_RCNN:
     #   images: The list of images loaded from the files or girderIDs
     #   imageLabels: a dictionary of the labels for each image, indexed by the label name
     def loadData(self, val_percentage, dataset):
-        baseFolder = os.path.basename(dataset["Folder"][0])
+        '''baseFolder = os.path.basename(dataset["Folder"][0])
         faultyFolder = os.path.join(baseFolder,"AN01-20210104-154854")
-        dataset = dataset.loc[dataset["Folder"] != faultyFolder]
+        dataset = dataset.loc[dataset["Folder"] != faultyFolder]'''
         dataset.index = [i for i in range(len(dataset.index))]
         trainIndexes, valIndexes = sklearn.model_selection.train_test_split(dataset.index, test_size=val_percentage,
                                                                             shuffle=False)

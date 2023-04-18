@@ -7,7 +7,7 @@ FLAGS = None
 
 def unpackZipFiles(dataLocation,datasetType):
     if datasetType == "Train":
-        for i in range(1, 5):
+        for i in range(1, 9):
             print("Extracting data from: Training_Data_Part{}.zip".format(i))
             extractionDir = os.path.join(dataLocation, "Training_Data_Part{}".format(i))
             if not os.path.exists(extractionDir):
