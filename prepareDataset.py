@@ -65,7 +65,7 @@ def createDataset():
         dataSetLocation = os.path.join(targetLocation,"Training_Data")
         if not os.path.exists(dataSetLocation):
             os.mkdir(dataSetLocation)
-        for i in range(1, 5):
+        for i in range(1, 9):
             dataFolder = os.path.join(baseLocation, "Training_Data_Part{}".format(i))
             for videoDir in os.listdir(dataFolder):
                 moveFilesToMainDirectory(os.path.join(dataFolder, videoDir), dataSetLocation)
