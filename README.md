@@ -7,11 +7,6 @@ For those wishing to run on a local computer:
 1. Ensure Anaconda has been installed on your device: https://www.anaconda.com/products/distribution  
 > - during installation, make sure to select the option to add anaconda to your search path  
 2. Create a tensorflow environment
-> - with GPU support
-```
-conda create -n createKerasEnv tensorflow-gpu
-```
-> - CPU only
 ```
 conda create -n createKerasEnv tensorflow
 ```
