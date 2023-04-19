@@ -79,7 +79,7 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train
 --loss_function: loss function to optimize during training (str)  
 --metrics: metrics used to evaluate the model (str) 
 
-### Subtask 3: Workflow recognition
+### Subtask 2: Workflow recognition
 Baseline network folder: Task Recognition    
 Model: ResNet50 + Recurrent LSTM model  
 Inputs: sequence of consecutive images  
