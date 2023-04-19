@@ -123,8 +123,8 @@ class Train_CNN_LSTM:
         balancedFold = pandas.DataFrame(columns=dataset.columns)
         for vid in videos:
             images = dataset.loc[dataset["Folder"] == vid]
-            labels = sorted(images["Tool"].unique())
-            counts = images["Tool"].value_counts()
+            labels = sorted(images["Overall Task"].unique())
+            counts = images["Overall Task"].value_counts()
             print(vid)
             smallestCount = counts[counts.index[-1]]
             print("Smallest label: " + str(counts.index[-1]))
@@ -136,18 +136,18 @@ class Train_CNN_LSTM:
                 reducedLabels = [x for x in labels if x != counts.index[-1]]
                 print(reducedLabels)
                 for label in reducedLabels:
-                    toolImages = images.loc[images["Tool"] == label]
+                    toolImages = images.loc[images["Overall Task"] == label]
                     randomSample = toolImages.sample(n=secondSmallest)
                     balancedFold = balancedFold.append(randomSample, ignore_index=True)
             else:
                 for label in labels:
-                    toolImages = images.loc[images["Tool"] == label]
+                    toolImages = images.loc[images["Overall Task"] == label]
                     if label == counts.index[-1]:
                         balancedFold = balancedFold.append(toolImages, ignore_index=True)
                     else:
                         randomSample = toolImages.sample(n=smallestCount)
                         balancedFold = balancedFold.append(randomSample, ignore_index=True)
-        print(balancedFold["Tool"].value_counts())
+        print(balancedFold["Overall Task"].value_counts())
         return balancedFold
 
     def createBalancedCNNDataset(self, trainSet, valSet):
@@ -161,9 +161,9 @@ class Train_CNN_LSTM:
         sortedVal["Set"] = ["Validation" for i in sortedVal.index]
         newCSV = newCSV.append(sortedVal, ignore_index=True)
         print("Resampled Train Counts")
-        print(resampledTrainSet["Tool"].value_counts())
+        print(resampledTrainSet["Overall Task"].value_counts())
         print("Resampled Validation Counts")
-        print(resampledValSet["Tool"].value_counts())
+        print(resampledValSet["Overall Task"].value_counts())
         return newCSV
 
     def getBalancedSequences(self,sequences):
@@ -261,7 +261,6 @@ class Train_CNN_LSTM:
             if not os.path.exists(self.saveLocation):
                 os.mkdir(self.saveLocation)
             taskLabelName = "Overall Task"
-            toolLabelName = "Tool"
 
             TrainIndexes, ValIndexes = self.loadData(self.validation_percentage, self.dataCSVFile)
             if self.balanceCNN:
@@ -273,10 +272,10 @@ class Train_CNN_LSTM:
                 TrainIndexes = balancedTrainData.index
                 ValIndexes = balancedValData.index
 
-            cnnTrainDataSet = CNNSequence(self.dataCSVFile, TrainIndexes, self.batch_size, toolLabelName)
-            cnnValDataSet = CNNSequence(self.dataCSVFile, ValIndexes, self.batch_size, toolLabelName)
+            cnnTrainDataSet = CNNSequence(self.dataCSVFile, TrainIndexes, self.batch_size, taskLabelName)
+            cnnValDataSet = CNNSequence(self.dataCSVFile, ValIndexes, self.batch_size, taskLabelName)
 
-            cnnLabelValues = numpy.array(sorted(self.dataCSVFile[toolLabelName].unique()))
+            cnnLabelValues = numpy.array(sorted(self.dataCSVFile[taskLabelName].unique()))
             numpy.savetxt(os.path.join(self.saveLocation,"cnn_labels.txt"),cnnLabelValues,fmt='%s',delimiter=',')
 
             cnnModel = network.createCNNModel((224,224,3),num_classes=len(cnnLabelValues))
