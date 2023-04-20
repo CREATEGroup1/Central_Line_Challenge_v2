@@ -29,13 +29,13 @@ git clone https://github.com/CREATE-Table-Top-Challenge/Central_Line_Challenge.g
 Download links are password protected and will only be available until May 5th, 2023. Registered participants will receive the password via email on April 24th, 2022.  
   
 #### Training Data:
-Training data can be downloaded in 8 parts using the following links: [Part 1](https://tinyurl.com/5drkkcrk), [Part 2](https://tinyurl.com/pthcvjfk), [Part 3](https://tinyurl.com/5n8mbbt4), [Part 4](https://tinyurl.com/4f7zwt6s), [Part 5](https://tinyurl.com/4cbsp56h), [Part 6](), [Part 7](https://tinyurl.com/36zxmukf), [Part 8](https://tinyurl.com/2dhmmt2u)  
+Training data can be downloaded in 8 parts using the following links: [Part 1](https://tinyurl.com/25rwnvdc), [Part 2](https://tinyurl.com/59fa3dpu), [Part 3](https://tinyurl.com/mrdsv9za), [Part 4](https://tinyurl.com/53xh9t9b), [Part 5](https://tinyurl.com/3jydcujz), [Part 6](https://tinyurl.com/ms5sdsk8), [Part 7](https://tinyurl.com/ms5sdsk8), [Part 8](https://tinyurl.com/369hnxef)  
 
 #### Unlabelled Data:
 Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 12:00pm EST (noon) May 4th, 2023: [Upload labels for review](https://forms.gle/jMYfoKLBD9VsyF1b9). As submissions pass through the review process they will be made available [here](https://tinyurl.com/4zwd2v9m).   
   
 #### Test Data:
-Test data can be downloaded using the following link on May 4th, 2023: [Test Data](Nonehttps://tinyurl.com/2p94danr)
+Test data can be downloaded using the following link on May 4th, 2023: [Test Data]()
 
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
