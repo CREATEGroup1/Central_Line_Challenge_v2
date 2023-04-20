@@ -2,7 +2,7 @@ import random
 import argparse
 import numpy as np
 import cv2
-
+import os
 
 from voc import parse_voc_annotation, parse_voc_annotation_deepLearnLive
 import json
@@ -92,9 +92,8 @@ def _main_(argv):
 
     with open(config_path) as config_buffer:
         config = json.loads(config_buffer.read())
-    trainTextFile = "d:\\DeepLearnLive\\Networks\\Object_detection\\Yolov3\\keras-yolo3-master\\cataractYolo_Fold_0/Train.txt"
-    #valTextFile = "c:/Users/Rebecca/Documents/Create_Training_Data/testYolov3/Validation.txt"
-    labelFile = "d:\\DeepLearnLive\\Networks\\Object_detection\\Yolov3\\keras-yolo3-master\\cataractYolo_Fold_0/classes.txt"
+    trainTextFile = os.path.join(args.saved_run_location,"Train.txt")
+    labelFile = os.path.join(args.saved_run_location,"classes.txt")
     train_imgs, train_labels = parse_voc_annotation_deepLearnLive(
         trainTextFile,
         config['train']['cache_name'],
@@ -129,6 +128,10 @@ if __name__ == '__main__':
         '--conf',
         default='config.json',
         help='path to configuration file')
+    argparser.add_argument(
+        '--saved_run_location',
+        default="",
+        help='location of a previous training run')
     argparser.add_argument(
         '-a',
         '--anchors',

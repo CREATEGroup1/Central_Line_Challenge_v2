@@ -3,7 +3,7 @@
         "min_input_size":       224,
         "max_input_size":       480,
         "anchors":              [42,51, 47,151, 71,278, 112,114, 163,189, 185,72, 188,344, 251,126, 275,248],
-        "labels":               ["kangaroo"]
+        "labels":               ["anesthetic", "catheter", "dilator", "guidewire", "guidewire_casing", "scalpel", "syringe", "ultrasound"]
     },
 
     "train": {
