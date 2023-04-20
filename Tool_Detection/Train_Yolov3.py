@@ -35,6 +35,8 @@ FLAGS = None
 config.gpu_options.allow_growth = True
 session = tf.compat.v1.Session(config=config)
 tf.compat.v1.keras.backend.set_session(session)'''
+print(tf.config.list_physical_devices("GPU"))
+#sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
 class Train_Yolov3:
     def loadData(self, val_percentage, dataset):
@@ -184,8 +186,7 @@ class Train_Yolov3:
             monitor='val_loss',
             verbose=1,
             save_best_only=True,
-            mode='min',
-            period=1
+            mode='min'
         )
         reduce_on_plateau = ReduceLROnPlateau(
             monitor='val_loss',
@@ -193,7 +194,7 @@ class Train_Yolov3:
             patience=2,
             verbose=1,
             mode='min',
-            epsilon=0.01,
+            min_delta=0.01,
             cooldown=0,
             min_lr=0
         )
@@ -269,7 +270,7 @@ class Train_Yolov3:
         else:
             train_model = template_model
 
-        optimizer = Adam(lr=lr, clipnorm=0.001)
+        optimizer = Adam(learning_rate=lr, clipnorm=0.001)
         train_model.compile(loss=dummy_loss, optimizer=optimizer)
 
         infer_model.build((416,416,3))

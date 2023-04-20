@@ -82,6 +82,7 @@ def parse_voc_annotation_deepLearnLive(datasetTextFile, cache_name, labels=[]):
                 img = {'object': []}
                 strLine = strLine.replace('\n',"")
                 strLine = strLine.replace("'","")
+                strLine = strLine.replace("b/","/",1)
                 try:
                     filepath, bboxes = strLine.split(" ",1)
                     bboxes = bboxes.split(" ")
@@ -91,6 +92,7 @@ def parse_voc_annotation_deepLearnLive(datasetTextFile, cache_name, labels=[]):
                     for bbox in bboxes:
                         classnum, xmin, xmax, ymin, ymax = bbox.split(",")
                         ymax = ymax.replace("\\r\\n", '')
+                        ymax = ymax.replace("\\n", '')
                         obj = {}
                         try:
                             obj['name'] = labels[int(classnum)]
