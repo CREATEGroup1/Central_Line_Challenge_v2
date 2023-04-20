@@ -73,13 +73,8 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train
 #### Required flags:
 --save_location:   The folder where the trained model and all training information will be saved  
 --data_csv_file:   File containing all files and labels to be used for training  
-#### Optional flags:
---num_epochs: Number of epochs to run (int)  
---validation_percentage: The percentage of data to be reserved for validation (float, range: 0-1)  
---batch_size: Number of images to be processed per batch (int)  
---learning_rate: Learning rate used for loss function optimization (float)  
---loss_function: loss function to optimize during training (str)  
---metrics: metrics used to evaluate the model (str) 
+  
+Additional hyperparameters such as batch size, learning rate and number of epochs can be changed by modifying config.json
 
 ### Subtask 2: Workflow recognition
 Baseline network folder: Task Recognition    
