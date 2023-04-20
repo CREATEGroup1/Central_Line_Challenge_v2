@@ -68,13 +68,18 @@ Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'x
   
 3. Train the network (replace paths as necessary):
 ```
-python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train_Faster_RCNN.py --save_location=C:/Users/SampleUser/Documents/toolDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
+python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train_Yolov3.py --save_location=C:/Users/SampleUser/Documents/toolDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
 ```
 #### Required flags:
 --save_location:   The folder where the trained model and all training information will be saved  
 --data_csv_file:   File containing all files and labels to be used for training  
   
 Additional hyperparameters such as batch size, learning rate and number of epochs can be changed by modifying config.json
+
+Custom anchor box ratios can be generated using gen_anchors.py:
+```
+python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/gen_anchors.py --saved_run_location=<Path to a previous training run>
+```
 
 ### Subtask 2: Workflow recognition
 Baseline network folder: Task Recognition    
