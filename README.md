@@ -62,7 +62,7 @@ Model: Yolo-v3
 Inputs: single image  
 Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int, 'conf': float}  
 
-1. Download the backend weights: [Backend weights](https://tinyurl.com/2b2upj3k)
+1. Download the backend weights: [Backend weights](https://tinyurl.com/y4s6zsa2)
 
 2. Place weights in the Tool_Detection directory
   
