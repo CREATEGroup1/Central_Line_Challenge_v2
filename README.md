@@ -7,11 +7,6 @@ For those wishing to run on a local computer:
 1. Ensure Anaconda has been installed on your device: https://www.anaconda.com/products/distribution  
 > - during installation, make sure to select the option to add anaconda to your search path  
 2. Create a tensorflow environment
-> - with GPU support
-```
-conda create -n createKerasEnv tensorflow-gpu
-```
-> - CPU only
 ```
 conda create -n createKerasEnv tensorflow
 ```
@@ -35,6 +30,9 @@ Download links are password protected and will only be available until May 5th, 
   
 #### Training Data:
 Training data can be downloaded in 8 parts using the following links: [Part 1](https://tinyurl.com/5drkkcrk), [Part 2](https://tinyurl.com/pthcvjfk), [Part 3](https://tinyurl.com/5n8mbbt4), [Part 4](https://tinyurl.com/4f7zwt6s), [Part 5](https://tinyurl.com/4cbsp56h), [Part 6](), [Part 7](https://tinyurl.com/36zxmukf), [Part 8](https://tinyurl.com/2dhmmt2u)  
+
+#### Unlabelled Data:
+Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 12:00pm EST (noon) May 4th, 2023: [Upload labels for review](https://forms.gle/jMYfoKLBD9VsyF1b9). As submissions pass through the review process they will be made available [here](https://tinyurl.com/4zwd2v9m).   
   
 #### Test Data:
 Test data can be downloaded using the following link on May 4th, 2023: [Test Data](Nonehttps://tinyurl.com/2p94danr)
@@ -62,9 +60,13 @@ One baseline network has been provided for each subtask of the challenge:
 Baseline network folder: Tool Detection    
 Model: Yolo-v3   
 Inputs: single image  
-Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int, 'conf': float}   
+Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int, 'conf': float}  
+
+1. Download the backend weights: [Backend weights](https://tinyurl.com/2b2upj3k)
+
+2. Place weights in the Tool_Detection directory
   
-Train the network (replace paths as necessary):
+3. Train the network (replace paths as necessary):
 ```
 python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train_Faster_RCNN.py --save_location=C:/Users/SampleUser/Documents/toolDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
 ```
