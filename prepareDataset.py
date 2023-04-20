@@ -14,13 +14,21 @@ def unpackZipFiles(dataLocation,datasetType):
                 os.mkdir(extractionDir)
             zipFile = os.path.join(dataLocation, "Training_Data_Part{}.zip".format(i))
             shutil.unpack_archive(zipFile,extractionDir)
-    else:
+    elif datasetType == "Test":
         print("Extracting data from: Test_Data.zip")
         extractionDir = os.path.join(dataLocation, "Test_Data")
         if not os.path.exists(extractionDir):
             os.mkdir(extractionDir)
         zipFile = os.path.join(dataLocation, "Test_Data.zip")
         shutil.unpack_archive(zipFile, extractionDir)
+    elif datasetType == "Unlabelled":
+        for i in range(1,9):
+            print("Extracting data from: Unlabelled_Data_Part{}.zip".format(i))
+            extractionDir = os.path.join(dataLocation, "Unlabelled_Data_Part{}.zip".format(i))
+            if not os.path.exists(extractionDir):
+                os.mkdir(extractionDir)
+            zipFile = os.path.join(dataLocation, "Unlabelled_Data_Part{}.zip".format(i))
+            shutil.unpack_archive(zipFile, extractionDir)
 
 def moveFilesToMainDirectory(videoDir,mainDirectory):
     videoID = os.path.basename(videoDir)
@@ -39,8 +47,11 @@ def createMainDatasetCSV(mainDirectory,datasetType):
 
     if datasetType == "Train":
         dataCSVFileName = "Training_Data.csv"
-    else:
+    elif datasetType == "Test":
         dataCSVFileName = "Test_Data.csv"
+    else:
+        dataCSVFileName = "Unlabelled_Data.csv"
+
     videoIDs = [x for x in os.listdir(mainDirectory) if not "." in x]
     i = 0
     dataCSVInitialized = False
@@ -71,7 +82,7 @@ def createDataset():
                 moveFilesToMainDirectory(os.path.join(dataFolder, videoDir), dataSetLocation)
             shutil.rmtree(dataFolder)
             print("Removed empty directory {}".format(dataFolder))
-    else:
+    elif datasetType == "Test":
         dataSetLocation = os.path.join(targetLocation,"Test_Data")
         if not os.path.exists(dataSetLocation):
             os.mkdir(dataSetLocation)
@@ -80,6 +91,18 @@ def createDataset():
             moveFilesToMainDirectory(os.path.join(dataFolder, videoDir), dataSetLocation)
         shutil.rmtree(dataFolder)
         print("Removed empty directory {}".format(dataFolder))
+    elif datasetType == "Unlabelled":
+        dataSetLocation = os.path.join(targetLocation,"Unlabelled_Data")
+        if not os.path.exists(dataSetLocation):
+            os.mkdir(dataSetLocation)
+        for i in range(1, 9):
+            dataFolder = os.path.join(baseLocation, "Unlabelled_Data_Part{}".format(i))
+            for videoDir in os.listdir(dataFolder):
+                moveFilesToMainDirectory(os.path.join(dataFolder, videoDir), dataSetLocation)
+            shutil.rmtree(dataFolder)
+            print("Removed empty directory {}".format(dataFolder))
+    else:
+        print("Unrecognized dataset type. Must be one of: Train, Test or Unlabelled")
     createMainDatasetCSV(dataSetLocation,datasetType)
     print("Dataset preparation complete. Data located in directory: {}".format(dataSetLocation))
 
@@ -101,7 +124,7 @@ if __name__ == '__main__':
       '--dataset_type',
       type=str,
       default='Train',
-      help='Type of Dataset you are creating: should be Train or Test'
+      help='Type of Dataset you are creating: should be Train, Test, or Unlabelled'
   )
 
   FLAGS, unparsed = parser.parse_known_args()
