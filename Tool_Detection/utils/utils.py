@@ -76,7 +76,7 @@ def evaluate(model,
                     className = generator.labels[k]
                     bbox[className] = scores[j][k]
                 bboxList.append(bbox)
-        resultsCSV = resultsCSV.append({"FilePath":generator.instances[i]["filename"],"Tool bounding box":bboxList},ignore_index=True)
+        resultsCSV = pandas.concat([resultsCSV,pandas.DataFrame({"FilePath":[generator.instances[i]["filename"]],"Tool bounding box":[bboxList]})])
 
         # copy detections to all_detections
         for label in range(generator.num_classes()):
