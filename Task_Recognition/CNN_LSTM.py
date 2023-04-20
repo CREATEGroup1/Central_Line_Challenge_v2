@@ -64,11 +64,11 @@ class CNN_LSTM():
         normImage = cv2.normalize(resized, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         normImage = numpy.expand_dims(normImage, axis=0)
 
-        toolClassification = self.cnnModel.predict(numpy.array(normImage))
+        toolClassification = self.cnnModel.predict(numpy.array(normImage),verbose=0)
         toolIndex = numpy.argmax(toolClassification)
         toolLabel = self.cnnLabels[toolIndex]
         self.imageSequence = numpy.append(self.imageSequence[1:], toolClassification, axis=0)
-        taskClassification = self.lstmModel.predict(numpy.array([self.imageSequence]))
+        taskClassification = self.lstmModel.predict(numpy.array([self.imageSequence]),verbose=0)
         labelIndex = numpy.argmax(taskClassification)
         label = self.lstmLabels[labelIndex]
         networkOutput = str(label) + str(taskClassification)

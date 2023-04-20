@@ -7,6 +7,7 @@ import sklearn.model_selection
 import numpy as np
 import json
 import pandas
+
 import shutil
 from voc import parse_voc_annotation, parse_voc_annotation_deepLearnLive
 from yolo import create_yolov3_model, dummy_loss
@@ -172,6 +173,7 @@ class Train_Yolov3:
 
     def create_callbacks(self,saved_weights_name, tensorboard_logs, model_to_save):
         makedirs(tensorboard_logs)
+        epoch_length = int(len(self.dataCSVFile.index)//self.batch_size)
 
         early_stop = EarlyStopping(
             monitor='val_loss',
@@ -186,7 +188,8 @@ class Train_Yolov3:
             monitor='val_loss',
             verbose=1,
             save_best_only=True,
-            mode='min'
+            mode='min',
+            save_freq=epoch_length
         )
         reduce_on_plateau = ReduceLROnPlateau(
             monitor='val_loss',
@@ -293,7 +296,7 @@ class Train_Yolov3:
 
             with open(config_path) as config_buffer:
                 config = json.loads(config_buffer.read())
-
+            self.batch_size=config['train']['batch_size']
             ###############################
             #   Parse the annotations
             ###############################

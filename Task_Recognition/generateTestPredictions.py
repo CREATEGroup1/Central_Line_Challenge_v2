@@ -3,12 +3,7 @@ import cv2
 import sys
 import numpy
 import pandas
-import tensorflow
-import tensorflow.keras
-from tensorflow.keras.applications import MobileNet,MobileNetV2
-from tensorflow.keras.applications import InceptionV3,ResNet50
-from tensorflow.keras import layers
-from tensorflow.keras.models import model_from_json
+pandas.options.mode.chained_assignment = None
 import CNN_LSTM
 import argparse
 
@@ -33,7 +28,7 @@ class Predict_CNN_LSTM:
             network.imageSequence = numpy.zeros((self.sequenceLength,numClasses))
             nothingIndex = numpy.where(network.cnnLabels == "nothing")
             network.imageSequence[:,nothingIndex[0][0]] = numpy.ones((self.sequenceLength,))
-            columns = ["FileName", "Time Recorded", "Tool", "Overall Task"] + [i for i in network.lstmLabels]
+            columns = ["FileName", "Time Recorded","Overall Task"] + [i for i in network.lstmLabels]
             predictions = pandas.DataFrame(columns=columns)
             predictions["FileName"] = self.dataCSVFile["FileName"]
             predictions["Time Recorded"] = self.dataCSVFile["Time Recorded"]
@@ -51,7 +46,6 @@ class Predict_CNN_LSTM:
                 taskPrediction,toolLabel = network.predict(image)
                 taskLabel,confidences = taskPrediction.split('[[')
                 predictions["Overall Task"][i] = taskLabel
-                predictions["Tool"][i] = toolLabel
             predictions.to_csv(os.path.join(self.saveLocation,"Task_Predictions.csv"),index=False)
             print("Predictions saved to: {}".format(os.path.join(self.saveLocation,"Task_Predictions.csv")))
 
