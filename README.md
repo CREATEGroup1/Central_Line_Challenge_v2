@@ -6,11 +6,12 @@ For those using the School of Computing GPU Server, you may skip directly to tra
 For those wishing to run on a local computer:  
 1. Ensure Anaconda has been installed on your device: https://www.anaconda.com/products/distribution  
 > - during installation, make sure to select the option to add anaconda to your search path  
-2. Create a tensorflow environment
+2. Create a new conda environment
 ```
-conda create -n createKerasEnv tensorflow
-```
-3. Install other required packages
+conda create -n createKerasEnv python=3.9
+```  
+3. Follow the step-by-step instructions provided [here](https://www.tensorflow.org/install/pip) for installing tensorflow and configuring your GPU if necessary. When you reach the step where you pip install tensorflow, install tensorflow==2.9 instead of 2.12 as listed in the instructions. For those using the School of Computing resources, follow the instructions for a linux installation.  
+4. Install the remaining requirements  
 ```
 conda activate createKerasEnv  
 pip install pandas, scikit-learn, matplotlib, opencv-python
