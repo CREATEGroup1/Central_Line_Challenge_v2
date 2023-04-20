@@ -299,7 +299,7 @@ class Train_Yolov3:
             foldDir = self.saveLocation
             if not os.path.exists(foldDir):
                 os.mkdir(foldDir)
-            trainTextFile, valTextFile, labelFile = self.loadData(0.3, self.dataCSVFile)
+            trainTextFile, valTextFile, labelFile = self.loadData(FLAGS.val_percentage, self.dataCSVFile)
 
             train_ints, valid_ints, labels, max_box_per_image, class_counts = self.create_training_instances(
                 trainTextFile,
@@ -429,6 +429,12 @@ if __name__ == '__main__':
         type=str,
         default='',
         help='Directory where you would like the trained model to be saved'
+    )
+    parser.add_argument(
+        '--val_percentage',
+        type=float,
+        default=0.3,
+        help='Percent of data to be used for validation'
     )
     FLAGS, unparsed = parser.parse_known_args()
     tm = Train_Yolov3()
