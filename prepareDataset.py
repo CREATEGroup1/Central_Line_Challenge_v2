@@ -61,7 +61,7 @@ def createMainDatasetCSV(mainDirectory,datasetType):
         if not dataCSVInitialized:
             dataCSV = pandas.DataFrame(columns=labelFile.columns)
             dataCSVInitialized = True
-        dataCSV = dataCSV.append(labelFile,ignore_index=True)
+        dataCSV = pandas.concat([dataCSV,labelFile])
     for column in dataCSV.columns:
         if "Unnamed" in column:
             dataCSV = dataCSV.drop(column,axis=1)
