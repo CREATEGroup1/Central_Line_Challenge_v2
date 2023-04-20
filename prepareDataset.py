@@ -67,10 +67,33 @@ def createMainDatasetCSV(mainDirectory,datasetType):
             dataCSV = dataCSV.drop(column,axis=1)
     dataCSV.to_csv(os.path.join(mainDirectory,dataCSVFileName),index = False)
 
+def checkAllPresent(dataLocation,datasetType):
+    missingFiles = []
+    if datasetType == "Train":
+        for i in range(1, 9):
+            zipFile = os.path.join(dataLocation, "Training_Data_Part{}.zip".format(i))
+            if not os.path.exists(zipFile):
+                missingFiles.append("Training_Data_Part{}.zip".format(i))
+    elif datasetType == "Test":
+        zipFile = os.path.join(dataLocation, "Test_Data.zip")
+        if not os.path.exists(zipFile):
+            missingFiles.append("Test_Data.zip")
+    elif datasetType == "Unlabelled":
+        for i in range(1,9):
+            zipFile = os.path.join(dataLocation, "Unlabelled_Data_Part{}.zip".format(i))
+            if not os.path.exists(zipFile):
+                missingFiles.append("Unlabelled_Data_Part{}.zip".format(i))
+    if len(missingFiles)>0:
+        print("Missing the following files:")
+        for file in missingFiles:
+            print("\t{}".format(file))
+        exit()
+
 def createDataset():
     baseLocation = FLAGS.compressed_location
     targetLocation = FLAGS.target_location
     datasetType = FLAGS.dataset_type
+    checkAllPresent(baseLocation,datasetType)
     unpackZipFiles(baseLocation,datasetType)
     if datasetType == "Train":
         dataSetLocation = os.path.join(targetLocation,"Training_Data")
