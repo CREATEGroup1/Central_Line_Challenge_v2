@@ -138,15 +138,15 @@ class Train_CNN_LSTM:
                 for label in reducedLabels:
                     toolImages = images.loc[images["Overall Task"] == label]
                     randomSample = toolImages.sample(n=secondSmallest)
-                    balancedFold = balancedFold.append(randomSample, ignore_index=True)
+                    balancedFold = pandas.concat([balancedFold,randomSample])
             else:
                 for label in labels:
                     toolImages = images.loc[images["Overall Task"] == label]
                     if label == counts.index[-1]:
-                        balancedFold = balancedFold.append(toolImages, ignore_index=True)
+                        balancedFold = pandas.concat([balancedFold,toolImages])
                     else:
                         randomSample = toolImages.sample(n=smallestCount)
-                        balancedFold = balancedFold.append(randomSample, ignore_index=True)
+                        balancedFold = pandas.concat([balancedFold,randomSample])
         print(balancedFold["Overall Task"].value_counts())
         return balancedFold
 
@@ -155,11 +155,11 @@ class Train_CNN_LSTM:
         resampledTrainSet = self.balanceDataset(trainSet)
         sortedTrain = resampledTrainSet.sort_values(by=['FileName'])
         sortedTrain["Set"] = ["Train" for i in sortedTrain.index]
-        newCSV = newCSV.append(sortedTrain, ignore_index=True)
+        newCSV = pandas.concat([newCSV,sortedTrain])
         resampledValSet = self.balanceDataset(valSet)
         sortedVal = resampledValSet.sort_values(by=['FileName'])
         sortedVal["Set"] = ["Validation" for i in sortedVal.index]
-        newCSV = newCSV.append(sortedVal, ignore_index=True)
+        newCSV = pandas.concat([newCSV,sortedVal])
         print("Resampled Train Counts")
         print(resampledTrainSet["Overall Task"].value_counts())
         print("Resampled Validation Counts")
@@ -185,15 +185,15 @@ class Train_CNN_LSTM:
             for label in reducedLabels:
                 taskSequences = tempDataFrame.loc[tempDataFrame["Labels"] == label]
                 randomSample = taskSequences.sample(n=secondSmallest)
-                balancedFold = balancedFold.append(randomSample, ignore_index=True)
+                balancedFold = pandas.concat([balancedFold,randomSample])
         else:
             for label in self.lstmLabelValues:
                 taskSequences = tempDataFrame.loc[tempDataFrame["Labels"] == label]
                 if label == counts.index[-1]:
-                    balancedFold = balancedFold.append(taskSequences, ignore_index=True)
+                    balancedFold = pandas.concat([balancedFold,taskSequences])
                 else:
                     randomSample = taskSequences.sample(n=smallestCount)
-                    balancedFold = balancedFold.append(randomSample, ignore_index=True)
+                    balancedFold = pandas.concat([balancedFold,randomSample])
         balancedSequences = []
         for i in balancedFold.index:
             balancedSequences.append(balancedFold["Sequences"][i])
