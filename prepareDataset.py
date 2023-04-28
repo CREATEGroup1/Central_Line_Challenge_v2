@@ -24,7 +24,7 @@ def unpackZipFiles(dataLocation,datasetType):
     elif datasetType == "Unlabelled":
         for i in range(1,9):
             print("Extracting data from: Unlabelled_Data_Part{}.zip".format(i))
-            extractionDir = os.path.join(dataLocation, "Unlabelled_Data_Part{}.zip".format(i))
+            extractionDir = os.path.join(dataLocation, "Unlabelled_Data_Part{}".format(i))
             if not os.path.exists(extractionDir):
                 os.mkdir(extractionDir)
             zipFile = os.path.join(dataLocation, "Unlabelled_Data_Part{}.zip".format(i))
