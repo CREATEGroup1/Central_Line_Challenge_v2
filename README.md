@@ -36,7 +36,7 @@ Training data can be downloaded in 8 parts using the following links: [Part 1](h
 Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 12:00pm EST (noon) May 4th, 2023: [Upload labels for review](https://forms.gle/jMYfoKLBD9VsyF1b9). As submissions pass through the review process they will be made available [here](https://tinyurl.com/2s4e8ute).   
   
 #### Test Data:
-Test data can be downloaded using the following link on May 4th, 2023: [Test Data]()
+Test data can be downloaded using the following link on May 4th, 2023: [Test Data](https://tinyurl.com/vntjfr45)
 
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
