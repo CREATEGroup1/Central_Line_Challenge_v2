@@ -7,7 +7,7 @@ FLAGS = None
 
 def unpackZipFiles(dataLocation,datasetType):
     if datasetType == "Train":
-        for i in range(1, 9):
+        for i in range(1, 11):
             print("Extracting data from: Training_Data_Part{}.zip".format(i))
             extractionDir = os.path.join(dataLocation, "Training_Data_Part{}".format(i))
             if not os.path.exists(extractionDir):
@@ -70,7 +70,7 @@ def createMainDatasetCSV(mainDirectory,datasetType):
 def checkAllPresent(dataLocation,datasetType):
     missingFiles = []
     if datasetType == "Train":
-        for i in range(1, 9):
+        for i in range(1, 11):
             zipFile = os.path.join(dataLocation, "Training_Data_Part{}.zip".format(i))
             if not os.path.exists(zipFile):
                 missingFiles.append("Training_Data_Part{}.zip".format(i))
@@ -99,7 +99,7 @@ def createDataset():
         dataSetLocation = os.path.join(targetLocation,"Training_Data")
         if not os.path.exists(dataSetLocation):
             os.mkdir(dataSetLocation)
-        for i in range(1, 9):
+        for i in range(1, 11):
             dataFolder = os.path.join(baseLocation, "Training_Data_Part{}".format(i))
             for videoDir in os.listdir(dataFolder):
                 moveFilesToMainDirectory(os.path.join(dataFolder, videoDir), dataSetLocation)
