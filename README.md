@@ -27,16 +27,16 @@ cd C:/Users/SampleUser/Documents
 git clone https://github.com/CREATE-Table-Top-Challenge/Central_Line_Challenge.git
 ```
 ## Download Data
-Download links are password protected and will only be available until May 5th, 2023. Registered participants will receive the password via email on April 24th, 2022.  
+Download links are password protected and will only be available until May 8th, 2024. Registered participants will receive the password via email on April 17th, 2024.  
   
 #### Training Data:
 Training data can be downloaded in 8 parts using the following links: [Part 1](https://tinyurl.com/25rwnvdc), [Part 2](https://tinyurl.com/59fa3dpu), [Part 3](https://tinyurl.com/mrdsv9za), [Part 4](https://tinyurl.com/53xh9t9b), [Part 5](https://tinyurl.com/3jydcujz), [Part 6](https://tinyurl.com/ms5sdsk8), [Part 7](https://tinyurl.com/36zxmukf), [Part 8](https://tinyurl.com/369hnxef)  
 
 #### Unlabelled Data:
-Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 12:00pm EST (noon) May 4th, 2023: [Upload labels for review](https://forms.gle/jMYfoKLBD9VsyF1b9). As submissions pass through the review process they will be made available [here](https://tinyurl.com/2s4e8ute).   
+Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 11:59pm EST May 6th, 2024: [Upload labels for review](https://forms.gle/jMYfoKLBD9VsyF1b9). As submissions pass through the review process they will be made available [here](https://tinyurl.com/2s4e8ute).   
   
 #### Test Data:
-Test data can be downloaded using the following link on May 4th, 2023: [Test Data](https://tinyurl.com/vntjfr45)
+Test data can be downloaded using the following link on May 6th, 2024: [Test Data](https://tinyurl.com/vntjfr45)
 
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
@@ -108,6 +108,12 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Task_Recognition/Tra
 --metrics: metrics used to evaluate the model (str) 
 --sequence_length: number of consecutive images used as a single sequence (int)  
 --downsampling_rate: number of frames to skip when generating training image sequences, used as a form of data augmentation (int)  
+
+### Subtask 3: Ultrasound probe segmentation using foundation models
+Baseline network folder:     
+Model:  
+Inputs: sequence of consecutive images 
+Outputs: sequence of consecutive segmentations  
 
 ## Generating test predictions
 Each network folder contains a script for generating the predictions on test data. This script is run the same way as the training scripts. For example:
