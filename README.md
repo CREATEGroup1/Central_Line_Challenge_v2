@@ -30,7 +30,7 @@ git clone https://github.com/CREATE-Table-Top-Challenge/Central_Line_Challenge.g
 Download links are password protected and will only be available until May 8th, 2024. Registered participants will receive the password via email on April 17th, 2024.  
   
 #### Training Data:
-Training data can be downloaded in 8 parts using the following links: [Part 1](https://tinyurl.com/25rwnvdc), [Part 2](https://tinyurl.com/59fa3dpu), [Part 3](https://tinyurl.com/mrdsv9za), [Part 4](https://tinyurl.com/53xh9t9b), [Part 5](https://tinyurl.com/3jydcujz), [Part 6](https://tinyurl.com/ms5sdsk8), [Part 7](https://tinyurl.com/36zxmukf), [Part 8](https://tinyurl.com/369hnxef)  
+Training data can be downloaded in 11 parts using the following links: [Part 1](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/ESbMYjKQ3g9NqkXg1B7QgjwBoOOirywgPfn-tOffpMKBLA?download=1), [Part 2](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EaTlGgjtmtlMpq64T72h3hsBkjJ3aofNFLwo8F7Sw84D5Q?download=1), [Part 3](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EcVmL9Ddj1BBqlkc6OdpVRUBs7h65meOe6i7NEDXoHM3IA?download=1), [Part 4](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EYrvRPidMz9Fonuh_ljoAtABFtuJVBWb64hI_EWYM2Me-A?download=1), [Part 5](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/ETRNzC7H7rNGtBvmT7kXKWIBrXgT6uZNv7LqPA-wdEzshw?download=1), [Part 6](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/ETPoZIVbgvZHsMJUZ_uUWRoB7vPmqZEodh-gHBOR1jWiLQ?download=1), [Part 7](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EQ0YscnYz2dIvtDgr50L0boBqBDMdyTzE9S39vGb1xxs0Q?download=1), [Part 8](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EdwCfiW4fx1Ch0iGcpaJ5HUBJA6zepMQOKRNy99_LGN1gQ?download=1), [Part 9](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EeRviIk7SAxNtu-It1hMhlEBE8-KbYr__VNG3mWKH3UKww?download=1), [Part 10](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EQbgx32zEghFm-C-DE2I9ZsBbjsmQrBSAI9s_z2nViFzxw?download=1), [Part 11](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EXwElhZDjotDhMCs7E68nW8Btm2VsC8Ap9PheAKYtBgHxw?download=1)      
 
 #### Unlabelled Data:
 Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 11:59pm EST May 6th, 2024: [Upload labels for review](https://forms.gle/jMYfoKLBD9VsyF1b9). As submissions pass through the review process they will be made available [here](https://tinyurl.com/2s4e8ute).   
@@ -112,7 +112,7 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Task_Recognition/Tra
 ### Subtask 3: Ultrasound probe segmentation using foundation models
 Baseline network folder:     
 Model:  
-Inputs: sequence of consecutive images 
+Inputs: sequence of consecutive images 	
 Outputs: sequence of consecutive segmentations  
 
 ## Generating test predictions
