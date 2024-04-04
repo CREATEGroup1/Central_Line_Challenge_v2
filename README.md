@@ -112,8 +112,8 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Task_Recognition/Tra
 ### Subtask 3: Ultrasound probe segmentation using foundation models
 Baseline network folder:     
 Model:  
-Inputs: sequence of consecutive images 	
-Outputs: sequence of consecutive segmentations  
+Inputs: sequence of consecutive images  
+Outputs: sequence of consecutive segmentations 
 
 ## Generating test predictions
 Each network folder contains a script for generating the predictions on test data. This script is run the same way as the training scripts. For example:
