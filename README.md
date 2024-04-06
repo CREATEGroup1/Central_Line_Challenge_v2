@@ -60,7 +60,7 @@ One baseline network has been provided for each subtask of the challenge:
 ### Subtask 1: Surgical tool localization/ detection
 Baseline network folder: Tool Detection    
 Model: Yolo-v3   
-Inputs: single image or a sequence of consecutive images 
+Inputs: single image or a sequence of consecutive images    
 Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int, 'conf': float}  
 
 1. Download the backend weights: [Backend weights](https://tinyurl.com/y4s6zsa2)
