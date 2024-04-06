@@ -33,10 +33,10 @@ Download links are password protected and will only be available until May 8th, 
 Training data can be downloaded in 11 parts using the following links: [Part 1](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/ESbMYjKQ3g9NqkXg1B7QgjwBoOOirywgPfn-tOffpMKBLA?download=1), [Part 2](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EaTlGgjtmtlMpq64T72h3hsBkjJ3aofNFLwo8F7Sw84D5Q?download=1), [Part 3](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EcVmL9Ddj1BBqlkc6OdpVRUBs7h65meOe6i7NEDXoHM3IA?download=1), [Part 4](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EYrvRPidMz9Fonuh_ljoAtABFtuJVBWb64hI_EWYM2Me-A?download=1), [Part 5](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/ETRNzC7H7rNGtBvmT7kXKWIBrXgT6uZNv7LqPA-wdEzshw?download=1), [Part 6](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/ETPoZIVbgvZHsMJUZ_uUWRoB7vPmqZEodh-gHBOR1jWiLQ?download=1), [Part 7](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EQ0YscnYz2dIvtDgr50L0boBqBDMdyTzE9S39vGb1xxs0Q?download=1), [Part 8](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EdwCfiW4fx1Ch0iGcpaJ5HUBJA6zepMQOKRNy99_LGN1gQ?download=1), [Part 9](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EeRviIk7SAxNtu-It1hMhlEBE8-KbYr__VNG3mWKH3UKww?download=1), [Part 10](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EQbgx32zEghFm-C-DE2I9ZsBbjsmQrBSAI9s_z2nViFzxw?download=1), [Part 11](https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EXwElhZDjotDhMCs7E68nW8Btm2VsC8Ap9PheAKYtBgHxw?download=1)      
 
 #### Unlabelled Data:
-Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 11:59pm EST May 6th, 2024: [Upload labels for review](https://docs.google.com/forms/d/e/1FAIpQLSc3YkErXbjX44xasOT2SfIOdwVSKEdPvIrDx0iHRMTg7LtRpQ/viewform?usp=sf_link). As submissions pass through the review process they will be made available [here](https://tinyurl.com/2s4e8ute).   
+Unlabelled data can be found [here](https://tinyurl.com/4zwd2v9m). Participants may upload labels using the following form until 11:59pm EST May 6th, 2024: [Upload labels for review](https://docs.google.com/forms/d/e/1FAIpQLSeEYi_e15ePejBbt0VZ0mQW13Y3eDluPST4DFsPi8RmzvAIwQ/viewform). As submissions pass through the review process they will be made available [here](https://tinyurl.com/2s4e8ute).   
   
 #### Test Data:
-Test data can be downloaded using the following link on May 6th, 2024: [Test Data]()
+Test data can be downloaded using the following link on May 6th, 2024: 
 
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
@@ -60,7 +60,7 @@ One baseline network has been provided for each subtask of the challenge:
 ### Subtask 1: Surgical tool localization/ detection
 Baseline network folder: Tool Detection    
 Model: Yolo-v3   
-Inputs: single image  
+Inputs: single image or a sequence of consecutive images 
 Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int, 'conf': float}  
 
 1. Download the backend weights: [Backend weights](https://tinyurl.com/y4s6zsa2)
@@ -110,10 +110,7 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Task_Recognition/Tra
 --downsampling_rate: number of frames to skip when generating training image sequences, used as a form of data augmentation (int)  
 
 ### Subtask 3: Ultrasound probe segmentation using foundation models
-Baseline network folder:     
-Model:  
-Inputs: sequence of consecutive images  
-Outputs: sequence of consecutive segmentations 
+No baseline code is provided for subtask 3. However, you can start by exploring models such as SAM (Segment Anything Model). Your input should be a single image or a sequence of consecutive images. Your code should produce a single NumPy array for each segmentation (each NumPy array should be # of slices x image height x image width) 
 
 ## Generating test predictions
 Each network folder contains a script for generating the predictions on test data. This script is run the same way as the training scripts. For example:
