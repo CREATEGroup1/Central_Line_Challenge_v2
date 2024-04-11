@@ -30,13 +30,13 @@ def get_arguments():
         '--batch_size',
         type=int,
         default=16,
-        help='type of output your model generates'
+        help='Number of images included in each batch'
     )
     # Optim
     parser.add_argument(
         "--epochs",
         type=int,
-        default=100,
+        default=1,
         help='Number of epochs'
     )
     parser.add_argument(
@@ -55,13 +55,13 @@ def get_arguments():
         "--lr0",
         type=float,
         default=1e-3,
-        help='Epochs to wait for no observable improvement for early stopping of training'
+        help='Initial learning rate'
     )
     parser.add_argument(
         "--lrf",
         type=float,
         default=1e-3,
-        help='Epochs to wait for no observable improvement for early stopping of training'
+        help='Final learning rate'
     )
     parser.add_argument(
         "--close_mosaic",
@@ -137,13 +137,13 @@ def get_arguments():
     parser.add_argument(
         '--val_iou_threshold',
         type=float,
-        default=0.3,
+        default=0.5,
         help='IoU threshold used for NMS when evaluating model'
     )
     parser.add_argument(
         '--val_confidence_threshold',
         type=float,
-        default=0.3,
+        default=0.5,
         help='Confidence threshold used for NMS when evaluating model'
     )
     return parser
@@ -363,6 +363,28 @@ def setAugmentationParams(saveDir):
         yaml.dump(config,f)
     return new_config_path
 
+def updateModelConfig(args,saveDir):
+    config_path = os.path.join(saveDir, "model_config.yaml")
+    with open (config_path,'r') as f:
+        config = yaml.safe_load(f)
+    config['epochs'] = args.epochs
+    config['optimizer'] = args.optimizer
+    config['patience'] = args.patience
+    config['lr0'] = args.lr0
+    config['lrf'] = args.lrf
+    config['freeze'] = args.freeze
+    config['close_mosaic'] = args.close_mosaic
+    config['box'] = args.box
+    config['cls'] = args.cls
+    config['dfl'] = args.dfl
+    config['batch'] = args.batch_size
+    config['imgsz'] = args.imgsz
+    config['iou'] = args.val_iou_threshold
+    config['conf'] = args.val_confidence_threshold
+    config_path = os.path.join(saveDir, "model_config.yaml")
+    with open(config_path, 'w') as f:
+        yaml.dump(config, f)
+
 def main(args):
     if args.save_location == "":
         print("No save location specified. Please set flag --save_location")
@@ -380,21 +402,11 @@ def main(args):
             yaml.dump(config,f)
         dataPath = prepareData(dataCSVFile, args.label_name, class_mapping,saveDir,args.val_percentage,args.include_blank)
         model_config = setAugmentationParams(saveDir)
+        updateModelConfig(args,saveDir)
         yolo = YOLOv5()
         if not os.path.exists(os.path.join(saveDir,"train/weights/best.pt")):
             model = yolo.createModel()
             model.train(data=dataPath,
-                        epochs = args.epochs,
-                        optimizer=args.optimizer,
-                        patience = args.patience,
-                        lr0 = args.lr0,
-                        lrf = args.lrf,
-                        freeze = args.freeze,
-                        close_mosaic = args.close_mosaic,
-                        box = args.box,
-                        cls = args.cls,
-                        dfl = args.dfl,
-                        batch = args.batch_size,
                         device=args.device,
                         workers = args.workers,
                         verbose=True,
@@ -402,14 +414,12 @@ def main(args):
                         project=saveDir,
                         exist_ok=True,
                         amp=False,
-                        imgsz = args.imgsz,
                         cfg = model_config)
         yolo.loadModel(saveDir)
         model = yolo.model
         metrics = model.val(split="val",
                             device=args.device,
-                            iou=args.val_iou_threshold,
-                            conf=args.val_confidence_threshold)
+                            cfg = model_config)
         saveMetrics(metrics,class_mapping,saveDir)
         del metrics
         del model

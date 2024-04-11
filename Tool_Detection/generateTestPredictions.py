@@ -10,7 +10,7 @@ def getPredictions(args):
     model.loadModel(modelFolder)
     data_csv = pandas.read_csv(args.data_csv_file)
     predictions = None
-    for x in data_csv.index[0:100]:
+    for x in data_csv.index:
         image = cv2.imread(os.path.join(data_csv["Folder"][x],data_csv["FileName"][x]))
         bboxes = eval(model.predict(image))
         new_preds = pandas.DataFrame({"Folder":[data_csv["Folder"][x]],
