@@ -41,7 +41,7 @@ Test data can be downloaded using the following link on May 6th, 2024:
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
 ```
-conda activate createKerasEnv  
+conda activate createPytorchEnv  
 cd <path_to_repository>  
 python prepareDataset.py --compressed_location=C:/Users/UserName/Downloads --target_location=C:/Users/UserName/Documents/CreateChallenge --dataset_type=Train  
 ```  
@@ -52,7 +52,7 @@ If the code is executed correctly, you should see a new directory in your target
 ## Training the networks
 Begin by activating your conda environment:
 ```
-conda activate createKerasEnv
+conda activate createPytorchEnv
 ```
 Next select which network you would like to run. 
   
