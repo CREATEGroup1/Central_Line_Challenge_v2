@@ -311,11 +311,14 @@ def prepareData(datacsv, labelName,class_mapping,saveDir,val_percentage,include_
 def getClassMapping(data,labelName):
     class_names = []
     for i in data.index:
-        bboxes = eval(str(data[labelName][i]))
-        if len(bboxes) > 0:
-            for bbox in bboxes:
-                if not bbox["class"] in class_names:
-                    class_names.append(bbox["class"])
+        try:
+            bboxes = eval(str(data[labelName][i]))
+            if len(bboxes) > 0:
+                for bbox in bboxes:
+                    if not bbox["class"] in class_names:
+                        class_names.append(bbox["class"])
+        except NameError:
+            print("Row {} \nFileName:{}: {}".format(i,data["FileName"][i],data[labelName][i]))
     class_names = sorted(class_names)
     class_mapping = dict(zip([i for i in range(len(class_names))],class_names))
     return class_mapping

@@ -8,13 +8,13 @@ For those wishing to run on a local computer:
 > - during installation, make sure to select the option to add anaconda to your search path  
 2. Create a new conda environment
 ```
-conda create -n createKerasEnv python=3.9
+conda create -n createPytorchEnv python=3.9
 ```  
-3. Follow the step-by-step instructions provided [here](https://www.tensorflow.org/install/pip) for installing tensorflow and configuring your GPU if necessary. When you reach the step where you pip install tensorflow, install tensorflow==2.9 instead of 2.12 as listed in the instructions. For those using the School of Computing resources, follow the instructions for a linux installation.  
+3. Follow the step-by-step instructions provided [here](https://pytorch.org/get-started/locally/) for installing pytorch with GPU support if necessary. For those using the School of Computing resources, follow the instructions for a linux installation.  
 4. Install the remaining requirements  
 ```
-conda activate createKerasEnv  
-pip install pandas, scikit-learn, matplotlib, opencv-python
+conda activate createPytorchEnv  
+pip install ultralytics, pandas, scikit-learn, matplotlib, opencv-python
 ```
 ## Clone this repository
 1. Using terminal navigate to the directory where you would like to place your local copy of the repository.  
@@ -41,7 +41,7 @@ Test data can be downloaded using the following link on May 6th, 2024:
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
 ```
-conda activate createKerasEnv  
+conda activate createPytorchEnv  
 cd <path_to_repository>  
 python prepareDataset.py --compressed_location=C:/Users/UserName/Downloads --target_location=C:/Users/UserName/Documents/CreateChallenge --dataset_type=Train  
 ```  
@@ -52,35 +52,45 @@ If the code is executed correctly, you should see a new directory in your target
 ## Training the networks
 Begin by activating your conda environment:
 ```
-conda activate createKerasEnv
+conda activate createPytorchEnv
 ```
 Next select which network you would like to run. 
   
 One baseline network has been provided for each subtask of the challenge:  
 ### Subtask 1: Surgical tool localization/ detection
 Baseline network folder: Tool Detection    
-Model: Yolo-v3   
-Inputs: single image or a sequence of consecutive images    
+Model: Yolo-v5   
+Inputs: single image    
 Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'xmax': int, 'ymin': int, 'ymax': int, 'conf': float}  
-
-1. Download the backend weights: [Backend weights](https://tinyurl.com/y4s6zsa2)
-
-2. Place weights in the Tool_Detection directory
   
-3. Train the network (replace paths as necessary):
+Train the network (replace paths as necessary):
 ```
-python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train_Yolov3.py --save_location=C:/Users/SampleUser/Documents/toolDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
+python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train_Yolov5.py --save_location=C:/Users/SampleUser/Documents/toolDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
 ```
 #### Required flags:
 --save_location:   The folder where the trained model and all training information will be saved  
 --data_csv_file:   File containing all files and labels to be used for training  
   
-Additional hyperparameters such as batch size, learning rate and number of epochs can be changed by modifying config.json
-
-Custom anchor box ratios can be generated using gen_anchors.py:
-```
-python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/gen_anchors.py --saved_run_location=<Path to a previous training run>
-```
+#### Optional flags:
+--batch_size: Number of images included in each batch  
+--epochs: Number of epochs  
+--val_percentage: Percent of data to be used for validation  
+--balance: Balance samples for training  
+--patience: Epochs to wait for no observable improvement for early stopping of training  
+--optimizer: Choice of optimizer for training. Options include SGD, Adam, AdamW, NAdam, RAdam, RMSProp etc., or auto for automatic selection based on model configuration. Affects convergence speed and stability.  
+--lr0: Initial learning rate  
+--lrf: Final learning rate  
+--close_mosaic: Disables mosaic data augmentation in the last N epochs to stabilize training before completion. Setting to 0 disables this feature.  
+--freeze: Freezes the first N layers of the model or specified layers by index, reducing the number of trainable parameters. Useful for fine-tuning or transfer learning.  
+--box: Weight of the box loss component in the loss function, influencing how much emphasis is placed on accurately predicting bounding box coordinates.  
+--cls: Weight of the classification loss in the total loss function, affecting the importance of correct class prediction relative to other components.  
+--dfl: Weight of the distribution focal loss, used in certain YOLO versions for fine-grained classification.  
+--imgsz: Size of input images as integer  
+--workers: Number of worker threads for data loading  
+--device: device to use for training / testing (default 'cuda')  
+--include_blank: Include images that have no labels for training  
+--val_iou_threshold: IoU threshold used for NMS when evaluating model
+--val_confidence_threshold: Confidence threshold used for NMS when evaluating model  
 
 ### Subtask 2: Workflow recognition
 Baseline network folder: Task Recognition    
