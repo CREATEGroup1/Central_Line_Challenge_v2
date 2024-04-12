@@ -308,9 +308,8 @@ def prepareData(datacsv, labelName,class_mapping,saveDir,val_percentage,include_
         yaml.dump(config,f)
     return os.path.join(saveDir,"data.yaml")
 
-def getClassMapping(datacsv,labelName):
+def getClassMapping(data,labelName):
     class_names = []
-    data = datacsv.loc[datacsv["Fold"]==0]
     for i in data.index:
         bboxes = eval(str(data[labelName][i]))
         if len(bboxes) > 0:
