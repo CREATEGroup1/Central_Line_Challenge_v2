@@ -341,7 +341,7 @@ def saveMetrics(metrics,class_mapping,saveDir):
         f.writelines(linesTo_write)
 
 def setAugmentationParams(saveDir):
-    config_path = os.path.join(saveDir, os.pardir, "YOLOv5_config.yaml")
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "YOLOv5_config.yaml")
     with open (config_path,'r') as f:
         config = yaml.safe_load(f)
     #Define augmentation hyperparameters (***Hint: Finding the right balance of augmentations during training can improve generalizability of your results)

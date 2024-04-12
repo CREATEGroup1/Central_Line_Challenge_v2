@@ -10,7 +10,7 @@ import random
 
 
 class CNNSequence(Sequence):
-    def __init__(self,datacsv,indexes,batchSize,labelName,shuffle=True,augmentations = False):
+    def __init__(self,datacsv,indexes,batchSize,labelName,shuffle=True,augmentations = False, balance = False):
         # author Rebecca Hisey
         self.inputs = numpy.array([os.path.join(datacsv["Folder"][x],datacsv["FileName"][x]) for x in indexes])
         self.batchSize = batchSize
@@ -26,7 +26,56 @@ class CNNSequence(Sequence):
             shuffledInputs,shuffledTargets = shuffle(self.inputs,self.targets)
             self.inputs = shuffledInputs
             self.targets = shuffledTargets
+        if self.balance:
+            #balance dataset
 
+    def balanceDataset(self,dataset):
+        videos = dataset["Folder"].unique()
+        balancedFold = pandas.DataFrame(columns=dataset.columns)
+        for vid in videos:
+            images = dataset.loc[dataset["Folder"] == vid]
+            labels = sorted(images["Overall Task"].unique())
+            counts = images["Overall Task"].value_counts()
+            print(vid)
+            smallestCount = counts[counts.index[-1]]
+            print("Smallest label: " + str(counts.index[-1]))
+            print("Smallest count: " + str(smallestCount))
+            if smallestCount == 0:
+                print("Taking second smallest")
+                secondSmallest = counts[counts.index[-2]]
+                print("Second smallest count: " + str(secondSmallest))
+                reducedLabels = [x for x in labels if x != counts.index[-1]]
+                print(reducedLabels)
+                for label in reducedLabels:
+                    toolImages = images.loc[images["Overall Task"] == label]
+                    randomSample = toolImages.sample(n=secondSmallest)
+                    balancedFold = pandas.concat([balancedFold,randomSample])
+            else:
+                for label in labels:
+                    toolImages = images.loc[images["Overall Task"] == label]
+                    if label == counts.index[-1]:
+                        balancedFold = pandas.concat([balancedFold,toolImages])
+                    else:
+                        randomSample = toolImages.sample(n=smallestCount)
+                        balancedFold = pandas.concat([balancedFold,randomSample])
+        print(balancedFold["Overall Task"].value_counts())
+        return balancedFold
+
+    def createBalancedCNNDataset(self, trainSet, valSet):
+        newCSV = pandas.DataFrame(columns=self.dataCSVFile.columns)
+        resampledTrainSet = self.balanceDataset(trainSet)
+        sortedTrain = resampledTrainSet.sort_values(by=['FileName'])
+        sortedTrain["Set"] = ["Train" for i in sortedTrain.index]
+        newCSV = pandas.concat([newCSV,sortedTrain])
+        resampledValSet = self.balanceDataset(valSet)
+        sortedVal = resampledValSet.sort_values(by=['FileName'])
+        sortedVal["Set"] = ["Validation" for i in sortedVal.index]
+        newCSV = pandas.concat([newCSV,sortedVal])
+        print("Resampled Train Counts")
+        print(resampledTrainSet["Overall Task"].value_counts())
+        print("Resampled Validation Counts")
+        print(resampledValSet["Overall Task"].value_counts())
+        return newCSV
 
     def __len__(self):
         # author Rebecca Hisey

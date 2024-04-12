@@ -54,7 +54,7 @@ class CNN_LSTM():
         model = model_from_json(JSONModel)'''
         model.load_weights(os.path.join(modelFolder, weightsFileName))
         adam = tensorflow.keras.optimizers.Adam(learning_rate=0.00001)
-        model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])y
         return model
 
     def predict(self,image):
