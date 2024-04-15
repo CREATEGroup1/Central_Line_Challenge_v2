@@ -1,5 +1,5 @@
 import os
-import cv2
+from PIL import Image
 import sys
 import numpy
 import pandas
@@ -20,15 +20,20 @@ class Predict_CNN_LSTM:
             self.saveLocation = FLAGS.save_location
             self.networkType = "CNN_LSTM"
             self.dataCSVFile = pandas.read_csv(FLAGS.data_csv_file)
-            self.sequenceLength = FLAGS.sequence_length
-
             network.loadModel(self.saveLocation)
-            numClasses = len(network.cnnLabels)
+            network.cnn_model.cuda("cuda")
+            network.cnn_model.return_head=False
+            network.lstm_model.cuda("cuda")
+            numClasses = network.num_classes
+            self.sequence_length = network.sequence_length
+            num_features = network.num_features
             print(numClasses)
-            network.imageSequence = numpy.zeros((self.sequenceLength,numClasses))
-            nothingIndex = numpy.where(network.cnnLabels == "nothing")
-            network.imageSequence[:,nothingIndex[0][0]] = numpy.ones((self.sequenceLength,))
-            columns = ["FileName", "Time Recorded","Overall Task"] + [i for i in network.lstmLabels]
+            network.sequence = numpy.zeros((self.sequence_length,num_features))
+            for task in network.task_class_mapping:
+                if network.task_class_mapping[task]=="nothing":
+                    nothingIndex = task
+            network.sequence[:,nothingIndex] = numpy.ones((self.sequence_length,))
+            columns = ["FileName", "Time Recorded","Overall Task"] #+ [network.task_class_mapping[i] for i in range(network.num_classes)]
             predictions = pandas.DataFrame(columns=columns)
             predictions["FileName"] = self.dataCSVFile["FileName"]
             predictions["Time Recorded"] = self.dataCSVFile["Time Recorded"]
@@ -37,13 +42,11 @@ class Predict_CNN_LSTM:
                 if i%500 == 0 or i==len(self.dataCSVFile.index)-1:
                     print("{}/{} predictions generated".format(i,len(self.dataCSVFile.index)))
                 if self.dataCSVFile["Folder"][i] != initialFolder:
-                    network.imageSequence = numpy.zeros((self.sequenceLength, numClasses))
-                    nothingIndex = numpy.where(network.cnnLabels == "nothing")
-                    print(nothingIndex[0][0])
-                    network.imageSequence[:, nothingIndex[0][0]] = numpy.ones((self.sequenceLength,))
+                    network.sequence = numpy.zeros((self.sequence_length, num_features))
+                    network.sequence[:, nothingIndex] = numpy.ones((self.sequence_length,))
                     initialFolder = self.dataCSVFile["Folder"][i]
-                image = cv2.imread(os.path.join(self.dataCSVFile["Folder"][i],self.dataCSVFile["FileName"][i]))
-                taskPrediction,toolLabel = network.predict(image)
+                image = Image.open(os.path.join(self.dataCSVFile["Folder"][i],self.dataCSVFile["FileName"][i]))
+                taskPrediction = network.predict(image)
                 taskLabel,confidences = taskPrediction.split('[[')
                 predictions["Overall Task"][i] = taskLabel
             predictions.to_csv(os.path.join(self.saveLocation,"Task_Predictions.csv"),index=False)

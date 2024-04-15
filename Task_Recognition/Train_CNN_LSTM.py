@@ -1,423 +1,691 @@
 import os
-import sys
 import numpy
-import random
-import pandas
+from pathlib import Path
 import argparse
-import tensorflow
-import tensorflow.keras
-from tensorflow.keras.callbacks import EarlyStopping,ModelCheckpoint,LearningRateScheduler
-from tensorflow.keras.applications import MobileNetV2
-from tensorflow.keras import layers
-from tensorflow.keras.models import model_from_json
-from tensorflow.keras import backend as K
-import sklearn
-import sklearn.model_selection
-import sklearn.metrics
-import cv2
+import json
 import gc
+import math
+import os
+import sys
+import time
+import cv2
+import pandas
+import numpy
+import torch
+import scipy
+import yaml
+import random
+import sklearn
+import sklearn.metrics
 from matplotlib import pyplot as plt
-import CNN_LSTM
-from CNNLSTMSequence import CNNSequence, LSTMSequence
+import torch.nn.functional as F
+from PIL import Image
+from torch import nn, optim
+import torch.nn.functional as F
+from CNN_LSTM import CNN_LSTM
+from DatasetGenerator import LSTMDataset, CNNDataset
 
-#tensorflow.compat.v1.disable_eager_execution()
+def get_arguments():
+    parser = argparse.ArgumentParser(description="Train a CNN_LSTM model", add_help=False)
+    # Data
+    parser.add_argument(
+        '--save_location',
+        type=str,
+        default='',
+        help='Name of the directory where the models and results will be saved'
+    )
+    parser.add_argument(
+        '--data_csv_file',
+        type=str,
+        default='',
+        help='Path to the csv file containing locations for all data used in training'
+    )
+    parser.add_argument(
+        '--val_percentage',
+        type=float,
+        default=0.3,
+        help='Percentage of samples to use for validation'
+    )
+    ## CNN Parameters ##
+    parser.add_argument(
+        '--cnn_epochs',
+        type=int,
+        default=100,
+        help='number of epochs for training lstm'
+    )
+    parser.add_argument(
+        '--cnn_batch',
+        type=int,
+        default=16,
+        help='batch size for training / validation of lstm'
+    )
+    parser.add_argument(
+        '--balance_cnn',
+        type=bool,
+        default=True,
+        help='Balance number of samples in each class for training'
+    )
+    parser.add_argument(
+        '--augment_cnn',
+        type=bool,
+        default=False,
+        help='Use augmentations when training CNN'
+    )
+    parser.add_argument(
+        '--cnn_lr',
+        type=float,
+        default=1e-5,
+        help='Learning rate for CNN optimizer'
+    )
+    parser.add_argument(
+        '--cnn_features',
+        type=int,
+        default=128,
+        help='Number of features in last layer of CNN before the final softmax'
+    )
 
-FLAGS = None
+    ## LSTM Parameters ##
+    parser.add_argument(
+        '--lstm_epochs',
+        type = int,
+        default=100,
+        help='number of epochs for training lstm'
+    )
+    parser.add_argument(
+        '--lstm_batch',
+        type=int,
+        default=8,
+        help='batch size for training / validation of lstm'
+    )
+    parser.add_argument(
+        '--lstm_sequence_length',
+        type=int,
+        default=100,
+        help='number of frames to include in each sequence'
+    )
+    parser.add_argument(
+        '--balance_lstm',
+        type=bool,
+        default=False,
+        help='Balance number of samples in each class for training'
+    )
+    parser.add_argument(
+        '--lstm_lr',
+        type=float,
+        default=1e-4,
+        help='Learning rate for LSTM optimizer'
+    )
 
-class Train_CNN_LSTM:
+    ## General Parameters ##
+    parser.add_argument(
+        '--device',
+        default='cuda',
+        help='device to use for training / testing'
+    )
+    return parser
 
-    def loadData(self,val_percentage,dataset):
-        trainIndexes,valIndexes = sklearn.model_selection.train_test_split(dataset.index,test_size=val_percentage,shuffle=False)
-        return trainIndexes,valIndexes
+def loadData(datacsv,val_percentage):
+    num_val_samples = round(val_percentage*len(datacsv.index))
+    val_indexes = datacsv.index[0:num_val_samples]
+    train_indexes = datacsv.index[num_val_samples:]
+    sets = {"Train": train_indexes, "Validation": val_indexes}
+    datasets = []
+    for learning_set in sets:
+        print("Parsing {} data".format(learning_set.lower()))
+        data = datacsv.iloc[sets[learning_set]].copy()
+        data.index = [i for i in range(len(data.index))]
+        data["Set"] = [learning_set for i in data.index]
+        datasets.append(data)
+    return datasets
 
-    def convertTextToNumericLabels(self,textLabels,labelValues):
-        numericLabels =[]
-        for i in range(len(textLabels)):
-            label = numpy.zeros(len(labelValues))
-            labelIndex = numpy.where(labelValues == textLabels[i])
-            label[labelIndex] = 1
-            numericLabels.append(label)
-        return numpy.array(numericLabels)
+def invert_class_mapping(class_mapping):
+    inverted_mapping = {}
+    for key in class_mapping:
+        inverted_mapping[class_mapping[key]] = key
+    print(inverted_mapping)
+    return inverted_mapping
 
-    def saveTrainingInfo(self,saveLocation,trainingHistory,networkType,balanced=False):
-        LinesToWrite = []
-        modelType = "\nNetwork type: " + str(self.networkType)
-        LinesToWrite.append(modelType)
-        datacsv = "\nData CSV: " + str(FLAGS.data_csv_file)
-        LinesToWrite.append(datacsv)
-        numEpochs = "\nNumber of Epochs: " + str(len(trainingHistory["loss"]))
-        numEpochsInt = len(trainingHistory["loss"])
-        LinesToWrite.append(numEpochs)
-        batch_size = "\nBatch size: " + str(self.batch_size)
-        LinesToWrite.append(batch_size)
-        if networkType == "LSTM":
-            lstmSequenceLength = "\nSequence Length: " + str(self.sequenceLength)
-            LinesToWrite.append(lstmSequenceLength)
-            lstmSamplingRate = "\nDown sampling rate: " + str(self.downsampling)
-            LinesToWrite.append(lstmSamplingRate)
-            LearningRate = "\nLearning rate: " + str(self.lstm_learning_rate)
+def writeLSTMConfig(foldDir,class_mapping, sequence_length, num_input_features,device):
+    config = {"class_mapping":class_mapping,
+              "sequence_length":sequence_length,
+              "num_features":num_input_features,
+              "device":device}
+    with open(os.path.join(foldDir,"config.yaml"),"w") as f:
+        yaml.dump(config,f)
+
+def writeResultsToFile(saveLocation,resultsDict,confmat):
+    linesToWrite = []
+    for key in resultsDict:
+        if "Train" in key or "Val" in key:
+            linesToWrite.append("\n{}: {}".format(key, resultsDict[key][-1]))
         else:
-            LearningRate = "\nLearning rate: " + str(self.cnn_learning_rate)
+            linesToWrite.append("\n{}: {}".format(key,resultsDict[key]))
+    linesToWrite.append("\n\nConfusion matrix")
+    linesToWrite.append("\n" + str(confmat))
+    with open(os.path.join(saveLocation, "trainingInfo_" + resultsDict["Model name"] + ".txt"), 'w') as f:
+        f.writelines(linesToWrite)
 
-        LinesToWrite.append(LearningRate)
-        dataBalance = "\nData balanced: " + str(balanced)
-        LinesToWrite.append(dataBalance)
-        LossFunction = "\nLoss function: " + str(self.loss_Function)
-        LinesToWrite.append(LossFunction)
-        trainStatsHeader = "\n\nTraining Statistics: "
-        LinesToWrite.append(trainStatsHeader)
-        trainLoss = "\n\tFinal training loss: " + str(trainingHistory["loss"][numEpochsInt-1])
-        LinesToWrite.append(trainLoss)
-        for i in range(len(self.metrics)):
-            trainMetrics = "\n\tFinal training " + self.metrics[i] + ": " + str(trainingHistory[self.metrics[i]][numEpochsInt-1])
-            LinesToWrite.append(trainMetrics)
-        valLoss = "\n\tFinal validation loss: " + str(trainingHistory["val_loss"][numEpochsInt - 1])
-        LinesToWrite.append(valLoss)
-        for i in range(len(self.metrics)):
-            valMetrics = "\n\tFinal validation " + self.metrics[i] + ": " + str(trainingHistory["val_"+self.metrics[i]][numEpochsInt-1])
-            LinesToWrite.append(valMetrics)
+def saveTrainingPlot(saveLocation,resultsDict,metric):
+    fig = plt.figure()
+    numEpochs =len(resultsDict["Train " + metric])
+    plt.plot([x for x in range(numEpochs)], resultsDict["Train " + metric], 'bo', label='Training '+metric)
+    plt.plot([x for x in range(numEpochs)], resultsDict["Val " + metric], 'b', label='Validation '+metric)
+    plt.title(resultsDict["Model name"]+' Training and Validation ' + metric)
+    plt.xlabel('Epochs')
+    plt.ylabel(metric.capitalize())
+    plt.legend()
+    plt.savefig(os.path.join(saveLocation, resultsDict["Model name"]+'_'+metric + '.png'))
+    plt.close(fig)
 
-        with open(os.path.join(saveLocation,"trainingInfo_"+networkType+".txt"),'w') as f:
-            f.writelines(LinesToWrite)
+def getResnetPredictions(data,resnetModel,device):
+    allPredictions = []
+    images = []
+    transforms = resnetModel.transforms
+    resnetModel.cuda(device)
+    for i in data.index:
+        imgFilePath = os.path.join(data["Folder"][i],data["FileName"][i])
+        img_tensor = transforms(Image.open(imgFilePath).resize((224,224)))
+        images.append(img_tensor)
+        if (i-min(data.index)) %10 ==0 or i==data.index[-1]:
+            images = torch.from_numpy(numpy.array(images)).cuda(device)
+            preds = resnetModel.forward(images)
+            for pred in preds:
+                pred = pred.cpu().detach().numpy()
+                allPredictions.append(pred)
+            print("Resnet predictions: {}/{} complete".format(i-min(data.index),len(data.index)))
+            del images
+            del preds
+            gc.collect()
+            images = []
+    return numpy.array(allPredictions)
 
-    def saveTrainingPlot(self,saveLocation,history,metric,networkType):
-        fig = plt.figure()
-        numEpochs =len(history[metric])
-        plt.plot([x for x in range(numEpochs)], history[metric], 'bo', label='Training '+metric)
-        plt.plot([x for x in range(numEpochs)], history["val_" + metric], 'b', label='Validation '+metric)
-        plt.title(networkType+' Training and Validation ' + metric)
-        plt.xlabel('Epochs')
-        plt.ylabel(metric.capitalize())
-        plt.legend()
-        plt.savefig(os.path.join(saveLocation, networkType+'_'+metric + '.png'))
-        plt.close(fig)
+def trainResnet(foldDir, model,training_data,val_data,args,labelName="Overall Task"):
+    gpu = torch.device(args.device)
+    transforms = model.transforms
+    resultsDict = {"Model name": "CNN",
+                   "Num epochs": args.cnn_epochs,
+                   "learning rate": args.cnn_lr,
+                   "Train loss": [],
+                   "Train accuracy": [],
+                   "Val loss": [],
+                   "Val accuracy": [],
+                   "Final Val loss": None,
+                   "Final Val accuracy": None}
+    train_dataset = CNNDataset(training_data, labelName, transforms,balance=args.balance_cnn,augmentations = args.augment_cnn)
+    val_dataset = CNNDataset(val_data, labelName, transforms,balance=False)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.cnn_batch,
+        shuffle=True,
+        num_workers=1,
+        pin_memory=True
+    )
 
-    def splitVideoIntoSequences(self, images,sequenceLength=5, downsampling=2):
-        number_of_sequences = len(images) - ((sequenceLength) * downsampling)
-        sequences = []
-        prevSequences = [[-1 for i in range(sequenceLength)] for j in range(downsampling)]
-        for x in range(sequenceLength):
-            for y in range(downsampling):
-                newSeq = prevSequences[y][1:]
-                newSeq.append(images[(x * downsampling) + y])
-                prevSequences[y] = newSeq
-                sequences.append(prevSequences[y])
-        for x in range(0, number_of_sequences):
-            sequences.append([images[i] for i in range(x, (x + sequenceLength * downsampling), downsampling)])
-        return sequences
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=args.cnn_batch,
+        num_workers=1,
+        pin_memory=True,
+    )
+    classes = sorted(training_data[labelName].unique())
+    lr = args.cnn_lr
+    optimizer = optim.Adam(model.parameters(),lr=lr)
+    loss_fn = nn.CrossEntropyLoss()
+    tool_loss = nn.BCEWithLogitsLoss()
 
-    def splitDatasetIntoSequences(self, indexes,sequenceLength=5, downsampling=2):
-        entries = self.dataCSVFile.iloc[indexes]
-        videoNames = entries["Folder"].unique()
-        allSequences = []
-        for video in videoNames:
-            videoImages = entries.loc[entries["Folder"]==video]
-            videoImageIndexes = videoImages.index
-            videoSequences = self.splitVideoIntoSequences(videoImageIndexes,sequenceLength,downsampling)
-            for sequence in videoSequences:
-                allSequences.append(sequence)
-        return allSequences
 
-    def balanceDataset(self,dataset):
-        videos = dataset["Folder"].unique()
-        balancedFold = pandas.DataFrame(columns=dataset.columns)
-        for vid in videos:
-            images = dataset.loc[dataset["Folder"] == vid]
-            labels = sorted(images["Overall Task"].unique())
-            counts = images["Overall Task"].value_counts()
-            print(vid)
-            smallestCount = counts[counts.index[-1]]
-            print("Smallest label: " + str(counts.index[-1]))
-            print("Smallest count: " + str(smallestCount))
-            if smallestCount == 0:
-                print("Taking second smallest")
-                secondSmallest = counts[counts.index[-2]]
-                print("Second smallest count: " + str(secondSmallest))
-                reducedLabels = [x for x in labels if x != counts.index[-1]]
-                print(reducedLabels)
-                for label in reducedLabels:
-                    toolImages = images.loc[images["Overall Task"] == label]
-                    randomSample = toolImages.sample(n=secondSmallest)
-                    balancedFold = pandas.concat([balancedFold,randomSample])
+    min_loss = 1e6
+    num_epoch_without_improvement = 0
+    for epoch in range(0, args.cnn_epochs):
+        if num_epoch_without_improvement >= 4:
+            print("Early stopping")
+            break
+        if num_epoch_without_improvement > 0 and num_epoch_without_improvement % 2 == 0:
+            lr = adjust_learning_rate(lr, optimizer)#lr * 0.7
+        model.train()
+        loss_per_batch = []
+        correct_instances = 0
+        total_instances = 0
+        start_time = last_logging = time.time()
+        for step, (x, y) in enumerate(train_loader, start=epoch * len(train_loader)):
+            x = x.cuda(gpu, non_blocking=True)
+            y = y.cuda(gpu, non_blocking=True)
+            y_pred = model.forward(x)
+            loss = loss_fn(y_pred,y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            loss_per_batch.append(loss.item())
+            y_pred = torch.softmax(y_pred, dim=1)
+            categorical_y_pred = torch.argmax(y_pred, dim=1)
+            categorical_y_true = y
+            numCorrect = sum(categorical_y_pred == categorical_y_true).item()
+            total_instances += len(y)
+            correct_instances += numCorrect
+            current_time = time.time()
+            if current_time - last_logging > 30:
+                stats = dict(
+                    epoch=epoch,
+                    step=step,
+                    max_step=(epoch+1) * len(train_loader),
+                    loss=loss.item(),
+                    time=int(current_time - start_time),
+                    estimated_time_remaining=int(((current_time - start_time)/(step-epoch*len(train_loader)))*((epoch+1)*len(train_loader)-step)),
+                    lr=lr,
+                )
+                print(json.dumps(stats))
+                last_logging = current_time
+        state = dict(
+            epoch=epoch + 1,
+            model=model.state_dict(),
+            optimizer=optimizer.state_dict(),
+        )
+        train_accuracy = correct_instances / total_instances
+        model.eval()
+        val_loss_per_batch = []
+        correct_instances = 0
+        total_instances = 0
+        start_time = last_logging = time.time()
+        with torch.no_grad():
+            for val_step, (x, y) in enumerate(val_loader, start=epoch * len(val_loader)):
+                x = x.cuda(gpu, non_blocking=True)
+                y = y.cuda(gpu, non_blocking=True)
+                y_pred = model.forward(x)
+                val_loss = loss_fn(y_pred, y)
+                y_pred = torch.softmax(y_pred, dim=1)
+
+                val_loss_per_batch.append(val_loss.item())
+                categorical_y_pred = torch.argmax(y_pred, dim=1)
+                categorical_y_true = y
+                numCorrect = sum(categorical_y_pred == categorical_y_true).item()
+                correct_instances += numCorrect
+                total_instances += len(y)
+                current_time = time.time()
+                if current_time - last_logging > 30:
+                    stats = dict(
+                        epoch=epoch,
+                        mode="Val",
+                        step=val_step,
+                        loss=val_loss.item(),
+                        time=int(current_time - start_time),
+                        estimated_time_remaining=int(
+                            ((current_time - start_time) / (val_step - epoch * len(val_loader))) * ((epoch + 1) * len(val_loader) - val_step)),
+                        lr=lr,
+                    )
+                    print(json.dumps(stats))
+                    last_logging = current_time
+        val_accuracy = correct_instances / total_instances
+        train_loss = sum(loss_per_batch) / len(loss_per_batch)
+        val_loss = sum(val_loss_per_batch) / len(val_loss_per_batch)
+        resultsDict["Train loss"].append(train_loss)
+        resultsDict["Train accuracy"].append(train_accuracy)
+        resultsDict["Val loss"].append(val_loss)
+        resultsDict["Val accuracy"].append(val_accuracy)
+        if val_loss < min_loss:
+            print("Val loss decreased from {} to {}. saving model.".format(min_loss, val_loss))
+            torch.save(state, os.path.join(foldDir, "resnet.pth"))
+            min_loss = val_loss
+            num_epoch_without_improvement = 0
+        else:
+            num_epoch_without_improvement += 1
+        print("Epoch: {} - Train loss: {}, Train accuracy: {}, Val loss: {}, Val accuracy: {}".format(epoch, train_loss,
+                                                                                                      train_accuracy,
+                                                                                                      val_loss,
+                                                                                                      val_accuracy))
+        if args.balance_cnn:
+            train_dataset.balanceDataByVideo()
+
+    ckpt = torch.load(os.path.join(foldDir, "resnet.pth"), map_location="cpu")
+    model.load_state_dict(ckpt, strict=False)
+    model.eval()
+    val_loss_per_batch = []
+    correct_instances = 0
+    total_instances = 0
+    pred_labels = numpy.array([])
+    true_labels = numpy.array([])
+    with torch.no_grad():
+        for val_step, (x, y) in enumerate(val_loader):
+            x = x.cuda(gpu, non_blocking=True)
+            y = y.cuda(gpu, non_blocking=True)
+            y_pred = model.forward(x)
+            val_loss = loss_fn(y_pred, y)
+            y_pred = torch.softmax(y_pred, dim=1)
+            val_loss_per_batch.append(val_loss.item())
+            categorical_y_pred = torch.argmax(y_pred, dim=1)
+            categorical_y_true = y
+            numCorrect = sum(categorical_y_pred == categorical_y_true).item()
+            correct_instances += numCorrect
+            total_instances += len(x)
+            pred_labels = numpy.concatenate([pred_labels, categorical_y_pred.cpu().numpy()], axis=None)
+            true_labels = numpy.concatenate([true_labels, categorical_y_true.cpu().numpy()], axis=None)
+    val_accuracy = correct_instances / total_instances
+    val_loss = sum(val_loss_per_batch) / len(val_loss_per_batch)
+    confMat = sklearn.metrics.confusion_matrix(true_labels, pred_labels)
+    print("Final Testing Stats: loss: {}, accuracy: {}".format(val_loss, val_accuracy))
+    print(confMat)
+    resultsDict["Final Val loss"] = [val_loss]
+    resultsDict["Final Val accuracy"] = [val_accuracy]
+    writeResultsToFile(foldDir, resultsDict, confMat)
+    saveTrainingPlot(foldDir, resultsDict, "loss")
+    saveTrainingPlot(foldDir, resultsDict, "accuracy")
+
+def getResnetFeatures(foldDir,set_name,data,resnetModel,device):
+    if not os.path.exists(os.path.join(foldDir,"{}_resnet.npy".format(set_name))):
+        res_preds = getResnetPredictions(data,resnetModel,device)
+        numpy.save(os.path.join(foldDir,"{}_resnet.npy".format(set_name)),res_preds)
+    else:
+        res_preds = numpy.load(os.path.join(foldDir,"{}_resnet.npy".format(set_name)))
+    return res_preds
+
+def trainLSTM(foldDir,lstm_model,train_data,val_data,train_res_preds,val_res_preds,args,labelName="Overall Task"):
+    gpu = torch.device(args.device)
+    classes = sorted(list(set([x for x in train_data[labelName].unique()]+[x for x in val_data[labelName].unique()])))
+    lstm_model.cuda(gpu)
+    resultsDict = {"Model name": "LSTM",
+                   "Num epochs": args.lstm_epochs,
+                   "Sequence length": args.lstm_sequence_length,
+                   "learning rate": args.lstm_lr,
+                   "Train loss": [],
+                   "Train accuracy": [],
+                   "Val loss": [],
+                   "Val accuracy": [],
+                   "Final Val loss": [],
+                   "Final Val accuracy": []}
+    train_dataset = LSTMDataset(train_data, labelName, classes,train_res_preds, sequence_length=args.lstm_sequence_length,
+                                balance=args.balance_lstm)
+    val_dataset = LSTMDataset(val_data, labelName, classes,val_res_preds, sequence_length=args.lstm_sequence_length,
+                              balance=False)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.lstm_batch,
+        num_workers=1,
+        pin_memory=True
+    )
+
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=args.lstm_batch,
+        num_workers=1,
+        pin_memory=True,
+    )
+
+    lr = args.lstm_lr
+    optimizer = optim.Adam(lstm_model.parameters(), lr=lr)
+    loss_fn = nn.CrossEntropyLoss()
+
+
+    min_loss = 1e6
+    num_epoch_without_improvement = 0
+    if not os.path.exists(os.path.join(foldDir, "lstm.pth")):
+        for epoch in range(0, args.lstm_epochs):
+            if num_epoch_without_improvement >= 4:
+                print("Early stopping")
+                break
+            if num_epoch_without_improvement > 0 and num_epoch_without_improvement % 2 == 0:
+                lr = adjust_learning_rate(lr, optimizer)  # lr*0.7
+            lstm_model.train()
+            loss_per_batch = []
+            correct_instances = 0
+            total_instances = 0
+            start_time = last_logging = time.time()
+            for step, (x, y) in enumerate(train_loader, start=epoch * len(train_loader)):
+                x = x.cuda(gpu, non_blocking=True)
+                y = y.cuda(gpu, non_blocking=True)
+
+                optimizer.zero_grad()
+                with torch.cuda.amp.autocast():
+                    y_pred = lstm_model(x)
+                    loss = customCELoss(loss_fn, y_pred, y)
+
+                loss.backward()
+                optimizer.step()
+                loss_per_batch.append(loss.item())
+                categorical_y_pred = torch.argmax(torch.softmax(y_pred[:, -1, :], dim=1), dim=1)
+                categorical_y_true = torch.argmax(y[:, -1, :], dim=1)
+                numCorrect = sum(categorical_y_pred == categorical_y_true).item()
+                total_instances += len(y)
+                correct_instances += numCorrect
+                current_time = time.time()
+                if current_time - last_logging > 30:  # args.log_freq_time:
+                    stats = dict(
+                        epoch=epoch,
+                        step=step,
+                        loss=loss.item(),
+                        accuracy=correct_instances / total_instances,
+                        time=int(current_time - start_time),
+                        estimated_time_remaining=int(
+                            ((current_time - start_time) / (step - epoch * len(train_loader))) * (
+                                        (epoch + 1) * len(train_loader) - step)),
+                        lr=lr,
+                    )
+                    print(json.dumps(stats))
+                    last_logging = current_time
+            state = dict(
+                epoch=epoch + 1,
+                model=lstm_model.state_dict(),
+                optimizer=optimizer.state_dict(),
+            )
+            train_accuracy = correct_instances / total_instances
+            lstm_model.eval()
+            val_loss_per_batch = []
+            correct_instances = 0
+            total_instances = 0
+            start_time = last_logging = time.time()
+            with torch.no_grad():
+                for val_step, (x, y) in enumerate(val_loader, start=epoch * len(val_loader)):
+                    x = x.cuda(gpu, non_blocking=True)
+                    y = y.cuda(gpu, non_blocking=True)
+                    y_pred = lstm_model(x)
+
+                    val_loss = customCELoss(loss_fn, y_pred, y)
+                    val_loss_per_batch.append(val_loss.item())
+                    categorical_y_pred = torch.argmax(torch.softmax(y_pred[:, -1, :], dim=1), dim=1)
+                    categorical_y_true = torch.argmax(y[:, -1, :], dim=1)
+                    numCorrect = sum(categorical_y_pred == categorical_y_true).item()
+                    correct_instances += numCorrect
+                    total_instances += len(y)
+                    current_time = time.time()
+                    if current_time - last_logging > 30:  # args.log_freq_time:
+                        stats = dict(
+                            epoch=epoch,
+                            mode="Val",
+                            step=val_step,
+                            loss=val_loss.item(),
+                            accuracy=correct_instances / total_instances,
+                            time=int(current_time - start_time),
+                            estimated_time_remaining=int(
+                                ((current_time - start_time) / (val_step - epoch * len(val_loader))) * (
+                                        (epoch + 1) * len(val_loader) - val_step)),
+                            lr=lr,
+                        )
+                        print(json.dumps(stats))
+                        last_logging = current_time
+            val_accuracy = correct_instances / total_instances
+            train_loss = sum(loss_per_batch) / len(loss_per_batch)
+            val_loss = sum(val_loss_per_batch) / len(val_loss_per_batch)
+            resultsDict["Train loss"].append(train_loss)
+            resultsDict["Train accuracy"].append(train_accuracy)
+            resultsDict["Val loss"].append(val_loss)
+            resultsDict["Val accuracy"].append(val_accuracy)
+            if val_loss < min_loss:
+                print("Val loss decreased from {} to {}. saving model.".format(min_loss, val_loss))
+                torch.save(state, os.path.join(foldDir, "lstm.pth"))
+                min_loss = val_loss
+                num_epoch_without_improvement = 0
             else:
-                for label in labels:
-                    toolImages = images.loc[images["Overall Task"] == label]
-                    if label == counts.index[-1]:
-                        balancedFold = pandas.concat([balancedFold,toolImages])
-                    else:
-                        randomSample = toolImages.sample(n=smallestCount)
-                        balancedFold = pandas.concat([balancedFold,randomSample])
-        print(balancedFold["Overall Task"].value_counts())
-        return balancedFold
+                num_epoch_without_improvement += 1
+            print("Epoch: {} - Train loss: {}, Train accuracy: {}, Val loss: {}, Val accuracy: {}".format(epoch,
+                                                                                                          train_loss,
+                                                                                                          train_accuracy,
+                                                                                                          val_loss,
+                                                                                                          val_accuracy))
+            if args.balance_lstm:
+                train_dataset.balanceDataByVideo()
 
-    def createBalancedCNNDataset(self, trainSet, valSet):
-        newCSV = pandas.DataFrame(columns=self.dataCSVFile.columns)
-        resampledTrainSet = self.balanceDataset(trainSet)
-        sortedTrain = resampledTrainSet.sort_values(by=['FileName'])
-        sortedTrain["Set"] = ["Train" for i in sortedTrain.index]
-        newCSV = pandas.concat([newCSV,sortedTrain])
-        resampledValSet = self.balanceDataset(valSet)
-        sortedVal = resampledValSet.sort_values(by=['FileName'])
-        sortedVal["Set"] = ["Validation" for i in sortedVal.index]
-        newCSV = pandas.concat([newCSV,sortedVal])
-        print("Resampled Train Counts")
-        print(resampledTrainSet["Overall Task"].value_counts())
-        print("Resampled Validation Counts")
-        print(resampledValSet["Overall Task"].value_counts())
-        return newCSV
+    ckpt = torch.load(os.path.join(foldDir, "lstm.pth"), map_location="cpu")
+    lstm_model.load_state_dict(ckpt["model"], strict=True)
+    lstm_model.eval()
+    val_loss_per_batch = []
+    correct_instances = 0
+    total_instances = 0
+    pred_labels = numpy.array([])
+    true_labels = numpy.array([])
+    seq_preds = numpy.array([])
+    seq_true = numpy.array([])
+    with torch.no_grad():
+        for val_step, (x, y) in enumerate(val_loader):
+            x = x.cuda(gpu, non_blocking=True)
+            y = y.cuda(gpu, non_blocking=True)
+            y_pred = lstm_model(x)
+            val_loss = customCELoss(loss_fn, y_pred, y)
+            val_loss_per_batch.append(val_loss.item())
+            categorical_y_pred = torch.argmax(torch.softmax(y_pred[:, -1, :], dim=1), dim=1)
+            categorical_y_true = torch.argmax(y[:, -1, :], dim=1)
+            numCorrect = sum(categorical_y_pred == categorical_y_true).item()
+            correct_instances += numCorrect
+            total_instances += len(x)
+            pred_labels = numpy.concatenate([pred_labels, categorical_y_pred.cpu().numpy()], axis=None)
+            true_labels = numpy.concatenate([true_labels, categorical_y_true.cpu().numpy()], axis=None)
+            seq_y_pred = torch.argmax(torch.softmax(y_pred, dim=2), dim=2)
+            seq_y_true = torch.argmax(y, dim=2)
+            if seq_preds.size == 0:
+                seq_preds = seq_y_pred.cpu().numpy()
+                seq_true = seq_y_true.cpu().numpy()
+            else:
+                seq_preds = numpy.concatenate([seq_preds, seq_y_pred.cpu().numpy()], axis=0)
+                seq_true = numpy.concatenate([seq_true, seq_y_true.cpu().numpy()], axis=0)
+    print(seq_preds.shape)
+    val_accuracy = correct_instances / total_instances
+    val_loss = sum(val_loss_per_batch) / len(val_loss_per_batch)
+    confMat = sklearn.metrics.confusion_matrix(true_labels, pred_labels)
+    print("Final Testing Stats: loss: {}, accuracy: {}".format(val_loss, val_accuracy))
+    print(confMat)
+    jaccard = calculateJaccardSeq(val_data, seq_preds, true_labels)
+    resultsDict["Final Val loss"] = [val_loss]
+    resultsDict["Final Val accuracy"] = [val_accuracy]
+    resultsDict["Jaccard"] = jaccard
+    writeResultsToFile(foldDir, resultsDict, confMat)
+    saveTrainingPlot(foldDir, resultsDict, "loss")
+    saveTrainingPlot(foldDir, resultsDict, "accuracy")
 
-    def getBalancedSequences(self,sequences):
-        sequenceLabels = self.getSequenceLabels(sequences)
-        tempDataFrame = pandas.DataFrame({"Sequences":sequences,"Labels":sequenceLabels})
-        balancedFold = pandas.DataFrame(columns = tempDataFrame.columns)
-        counts = tempDataFrame["Labels"].value_counts()
-        print("Initial Counts: ")
-        print(counts)
-        smallestCount = counts[counts.index[-1]]
-        print("Smallest label: " + str(counts.index[-1]))
-        print("Smallest count: " + str(smallestCount))
-        if smallestCount == 0:
-            print("Taking second smallest")
-            secondSmallest = counts[counts.index[-2]]
-            print("Second smallest count: " + str(secondSmallest))
-            reducedLabels = [x for x in self.lstmLabelValues if x != counts.index[-1]]
-            print(reducedLabels)
-            for label in reducedLabels:
-                taskSequences = tempDataFrame.loc[tempDataFrame["Labels"] == label]
-                randomSample = taskSequences.sample(n=secondSmallest)
-                balancedFold = pandas.concat([balancedFold,randomSample])
+def customCELoss(loss_function,y_pred,y_true):
+    sequence_loss = 0
+    for i in range(y_pred.size(1)):
+        if y_pred.size(1)-1 == i:
+            sequence_loss += 2*loss_function(y_pred[:, i, :], y_true[:, i, :])
+        elif y_pred.size(1)- i < 5:
+            sequence_loss += 1.2 * loss_function(y_pred[:, i, :], y_true[:, i, :])
         else:
-            for label in self.lstmLabelValues:
-                taskSequences = tempDataFrame.loc[tempDataFrame["Labels"] == label]
-                if label == counts.index[-1]:
-                    balancedFold = pandas.concat([balancedFold,taskSequences])
-                else:
-                    randomSample = taskSequences.sample(n=smallestCount)
-                    balancedFold = pandas.concat([balancedFold,randomSample])
-        balancedSequences = []
-        for i in balancedFold.index:
-            balancedSequences.append(balancedFold["Sequences"][i])
-        print("Resampled Sequence Counts")
-        print(balancedFold["Labels"].value_counts())
-        return balancedSequences
+            sequence_loss += loss_function(y_pred[:,i,:],y_true[:,i,:])
+    return sequence_loss
 
-    def getSequenceLabels(self, sequences):
-        sequenceLabels = []
-        for sequence in sequences:
-            textLabel = self.dataCSVFile["Overall Task"][sequence[len(sequence) - 1]]
-            sequenceLabels.append(textLabel)
-        return sequenceLabels
+def calculateJaccard(data,predictions,true_labels):
+    videos = data["Folder"].unique()
+    overall_min_idx = data.index[0]
+    jacc_string = "Jaccard:"
+    for vid in videos:
+        vid_data = data.loc[data["Folder"]==vid]
+        preds = predictions[vid_data.index[0]-overall_min_idx:vid_data.index[-1]-overall_min_idx+1]
+        true_task = true_labels[vid_data.index[0] - overall_min_idx:vid_data.index[-1] - overall_min_idx + 1]
+        jaccard = sklearn.metrics.jaccard_score(true_task,preds,average='weighted')
+        print("{}: {}".format(vid,jaccard))
+        jacc_string += "\n{}: {}".format(vid,jaccard)
+    jaccard = sklearn.metrics.jaccard_score(predictions, true_labels, average='weighted')
+    print("Overall: {}".format(jaccard))
+    jacc_string += "\nOverall: {}".format(jaccard)
+    return jacc_string
 
-    def readImages(self, files,cnnModel):
-        images = []
-        numLoaded = 0
-        allOutputs = numpy.array([])
-        for i in range(len(files)):
-            image = cv2.imread(files[i])
-            resized_image = cv2.resize(image, (224, 224))
-            normImg = cv2.normalize(resized_image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-            images.append(normImg)
-            numLoaded += 1
-            if numLoaded % 500 == 0 or i == (len(files) - 1):
-                print("loaded " + str(numLoaded) + ' / ' + str(len(files)) + ' images')
-                if allOutputs.size == 0:
-                    allOutputs = cnnModel.predict(numpy.array(images))
-                else:
-                    cnnOutput = cnnModel.predict(numpy.array(images))
-                    allOutputs = numpy.append(allOutputs, cnnOutput, axis=0)
-                del images
-                gc.collect()
-                images = []
-            del image
-            del resized_image
-            del normImg
-        return allOutputs
+def calculateJaccardSeq(data,predictions,true_labels):
+    videos = data["Folder"].unique()
+    overall_min_idx = data.index[0]
+    sequence_length = predictions.shape[-1]
+    all_preds = []
+    jacc_string = "Jaccard:"
+    for vid in videos:
+        vid_data = data.loc[data["Folder"]==vid]
+        vid_preds = []
+        true_task = true_labels[vid_data.index[0] - overall_min_idx:vid_data.index[-1] - overall_min_idx + 1]
+        for i in range(vid_data.index[0]-overall_min_idx,vid_data.index[-1]-overall_min_idx+1):
+            frame_preds = []
+            initial_idx = -1
+            for j in range(i,min(true_labels.shape[0],i+sequence_length)):
+                frame_preds.append(predictions[j][initial_idx])
+                initial_idx-=1
+            most_common = scipy.stats.mode(numpy.array(frame_preds))[0]
+            vid_preds.append(most_common)
+            all_preds.append(most_common)
 
-    def train(self):
-        if FLAGS.save_location == "":
-            print("No save location specified. Please set flag --save_location")
-        elif FLAGS.data_csv_file == "":
-            print("No dataset specified. Please set flag --data_csv_file")
-        else:
-            self.saveLocation = FLAGS.save_location
-            self.networkType = "CNN_LSTM"
-            self.dataCSVFile = pandas.read_csv(FLAGS.data_csv_file)
-            self.validation_percentage = FLAGS.validation_percentage
+        jaccard = sklearn.metrics.jaccard_score(true_task,vid_preds,average='weighted')
+        print("{}: {}".format(vid,jaccard))
+        jacc_string += "\n{}: {}".format(vid, jaccard)
+    jaccard = sklearn.metrics.jaccard_score(all_preds, true_labels, average='weighted')
+    print("Overall: {}".format(jaccard))
+    jacc_string += "\nOverall: {}".format(jaccard)
+    return jacc_string
 
-            self.numEpochs = FLAGS.num_epochs_cnn
-            self.numLSTMEpochs = FLAGS.num_epochs_lstm
-            self.batch_size = FLAGS.batch_size
-            self.sequenceLength = FLAGS.sequence_length
-            self.downsampling = FLAGS.downsampling_rate
-            self.cnn_learning_rate = FLAGS.cnn_learning_rate
-            self.lstm_learning_rate = FLAGS.lstm_learning_rate
-            self.balanceCNN = FLAGS.balance_CNN_Data
-            self.balanceLSTM = FLAGS.balance_LSTM_Data
-            self.cnn_optimizer = tensorflow.keras.optimizers.Adam(learning_rate=self.cnn_learning_rate)
-            self.lstm_optimizer = tensorflow.keras.optimizers.Adam(learning_rate=self.lstm_learning_rate)
-            self.loss_Function = FLAGS.loss_function
-            self.metrics = FLAGS.metrics.split(",")
-            network = CNN_LSTM.CNN_LSTM()
-            if not os.path.exists(self.saveLocation):
-                os.mkdir(self.saveLocation)
-            taskLabelName = "Overall Task"
+def main(args):
+    torch.backends.cudnn.benchmark = True
+    print(args)
+    gpu = torch.device(args.device)
+    labelName = "Overall Task"
+    dataCSVFile = pandas.read_csv(args.data_csv_file)
+    num_classes = len(dataCSVFile[labelName].unique())
+    foldDir = args.save_location
+    if not os.path.exists(foldDir):
+        os.mkdir(foldDir)
+    args.save_location = foldDir
+    network = CNN_LSTM()
 
-            TrainIndexes, ValIndexes = self.loadData(self.validation_percentage, self.dataCSVFile)
-            if self.balanceCNN:
-                trainData = self.dataCSVFile.iloc[TrainIndexes]
-                valData = self.dataCSVFile.iloc[ValIndexes]
-                self.dataCSVFile = self.createBalancedCNNDataset(trainData, valData)
-                balancedTrainData = self.dataCSVFile.loc[self.dataCSVFile["Set"] == "Train"]
-                balancedValData = self.dataCSVFile.loc[self.dataCSVFile["Set"] == "Validation"]
-                TrainIndexes = balancedTrainData.index
-                ValIndexes = balancedValData.index
+    train_data,val_data = loadData(dataCSVFile,args.val_percentage)
+    class_counts = train_data[labelName].value_counts()
+    classes = sorted(dataCSVFile[labelName].unique())
+    print(class_counts)
+    class_mapping = dict(zip([i for i in range(len(dataCSVFile[labelName].unique()))],
+                             sorted(dataCSVFile[labelName].unique())))
 
-            cnnTrainDataSet = CNNSequence(self.dataCSVFile, TrainIndexes, self.batch_size, taskLabelName)
-            cnnValDataSet = CNNSequence(self.dataCSVFile, ValIndexes, self.batch_size, taskLabelName)
+    num_input_features = args.cnn_features
+    resnetModel = network.createCNNModel(num_input_features, num_classes).cuda(gpu)
+    if not os.path.exists(os.path.join(foldDir, "resnet.pth")):
+        trainResnet(foldDir, resnetModel,train_data,val_data,args,labelName=labelName)
+    resnetModel = network.loadCNNModel(foldDir)
+    resnetModel.return_head = False
+    train_res_preds = getResnetFeatures(foldDir,"Train",train_data,resnetModel,args.device)
+    val_res_preds = getResnetFeatures(foldDir,"Validation",val_data,resnetModel,args.device)
 
-            cnnLabelValues = numpy.array(sorted(self.dataCSVFile[taskLabelName].unique()))
-            numpy.savetxt(os.path.join(self.saveLocation,"cnn_labels.txt"),cnnLabelValues,fmt='%s',delimiter=',')
 
-            cnnModel = network.createCNNModel((224,224,3),num_classes=len(cnnLabelValues))
-            cnnModel.compile(optimizer = self.cnn_optimizer, loss = self.loss_Function, metrics = self.metrics)
+    writeLSTMConfig(foldDir, class_mapping, args.lstm_sequence_length, num_input_features,args.device)
+    lstm_model = network.createLSTMModel(num_input_features,len(classes))
+    trainLSTM(foldDir,lstm_model, train_data, val_data, train_res_preds, val_res_preds, args, labelName)
 
-            earlyStoppingCallback = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=3)
-            modelCheckPointCallback = ModelCheckpoint(os.path.join(self.saveLocation,'resnet50.h5'), verbose=1,monitor='val_accuracy', mode='max', save_weights_only = True,save_best_only=True)
 
-            history = cnnModel.fit(x=cnnTrainDataSet,
-                                   validation_data=cnnValDataSet,
-                                   epochs=self.numEpochs,callbacks=[modelCheckPointCallback,earlyStoppingCallback])
+def adjust_learning_rate(lr, optimizer):
+    lr = lr*0.7
+    for param_group in optimizer.param_groups:
+        param_group["lr"] = lr
+    return lr
 
-            cnnModel.load_weights(os.path.join(self.saveLocation, 'resnet50.h5'))
+class FocalLoss(nn.Module):
+    '''
+    Multi-class Focal Loss
+    '''
+    def __init__(self, gamma=2, weight=None):
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.weight = weight
+        #self.reduction = reduction
 
-            self.saveTrainingInfo(self.saveLocation, history.history,"CNN")
-            self.saveTrainingPlot(self.saveLocation, history.history, "loss", "CNN")
-            for metric in self.metrics:
-                self.saveTrainingPlot(self.saveLocation,history.history,metric,"CNN")
+    def forward(self, input, target):
+        """
+        input: [N, C], float32
+        target: [N, ], int64
+        """
+        logpt = F.log_softmax(input, dim=1)
+        pt = torch.exp(logpt)
+        logpt = (1-pt)**self.gamma * logpt
+        loss = F.nll_loss(logpt, target, self.weight)
+        return loss
 
-            allSequences = self.splitDatasetIntoSequences(self.dataCSVFile.index, sequenceLength=self.sequenceLength,downsampling=self.downsampling)
-            lstmTrainSequences,lstmValSequences = sklearn.model_selection.train_test_split(allSequences,test_size=self.validation_percentage)
-
-            if self.balanceLSTM:
-                lstmTrainSequences = self.getBalancedSequences(lstmTrainSequences)
-                lstmValSequences = self.getBalancedSequences(lstmValSequences)
-
-            self.lstmLabelValues = numpy.array(sorted(self.dataCSVFile[taskLabelName].unique()))
-            numpy.savetxt(os.path.join(self.saveLocation, "lstm_labels.txt"), self.lstmLabelValues, fmt='%s', delimiter=',')
-
-            inputs = self.readImages([os.path.join(self.dataCSVFile["Folder"][x], self.dataCSVFile["FileName"][x]) for x in self.dataCSVFile.index],cnnModel)
-            lstmTrainDataSet = LSTMSequence(self.dataCSVFile, inputs, lstmTrainSequences, cnnModel, self.batch_size, taskLabelName)
-            print("Training images loaded")
-            lstmValDataSet = LSTMSequence(self.dataCSVFile, inputs, lstmValSequences, cnnModel, self.batch_size, taskLabelName)
-            print("Validation images loaded")
-
-            modelCheckPointCallback = ModelCheckpoint(os.path.join(self.saveLocation, 'single_LSTM.h5'), verbose=1,
-                                                      monitor='val_accuracy', mode='max', save_weights_only=True,
-                                                      save_best_only=True)
-            earlyStoppingCallback = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
-
-            lstmModel = network.createSingleLSTMModel(self.sequenceLength, cnnNumClasses = len(cnnLabelValues),numOutputClasses=len(self.lstmLabelValues))
-            lstmModel.compile(optimizer=self.lstm_optimizer, loss=self.loss_Function, metrics=self.metrics,run_eagerly=False)
-
-            history = lstmModel.fit(x=lstmTrainDataSet,
-                                   validation_data=lstmValDataSet,
-                                   epochs=self.numLSTMEpochs,callbacks=[modelCheckPointCallback,earlyStoppingCallback])
-            lstmModel.load_weights(os.path.join(self.saveLocation, 'single_LSTM.h5'))
-
-            self.saveTrainingInfo(self.saveLocation, history.history, "LSTM")
-            self.saveTrainingPlot(self.saveLocation, history.history, "loss","LSTM")
-            for metric in self.metrics:
-                self.saveTrainingPlot(self.saveLocation, history.history, metric, "LSTM")
-
-            network.saveModel(cnnModel,lstmModel,self.saveLocation)
-
-if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--save_location',
-      type=str,
-      default='',
-      help='Name of the directory where the models and results will be saved'
-  )
-  parser.add_argument(
-      '--validation_percentage',
-      type=float,
-      default=0.3,
-      help='percent of data to be used for validation'
-  )
-  parser.add_argument(
-      '--data_csv_file',
-      type=str,
-      default='',
-      help='Path to the csv file containing locations for all data used in training'
-  )
-  parser.add_argument(
-      '--num_epochs_cnn',
-      type=int,
-      default=50,
-      help='number of epochs used in training the cnn'
-  )
-  parser.add_argument(
-      '--num_epochs_lstm',
-      type=int,
-      default=8,
-      help='number of epochs used in training the lstm'
-  )
-  parser.add_argument(
-      '--sequence_length',
-      type=int,
-      default=50,
-      help='number of images in the sequences for task prediction'
-  )
-  parser.add_argument(
-      '--downsampling_rate',
-      type=int,
-      default=4,
-      help='number of images to skip while creating training sequences'
-  )
-  parser.add_argument(
-      '--batch_size',
-      type=int,
-      default=8,
-      help='number of images in each batch'
-  )
-  parser.add_argument(
-      '--cnn_learning_rate',
-      type=float,
-      default=0.00001,
-      help='Learning rate used in training cnn network'
-  )
-  parser.add_argument(
-      '--lstm_learning_rate',
-      type=float,
-      default=0.0001,
-      help='Learning rate used in training lstm network'
-  )
-  parser.add_argument(
-      '--balance_CNN_Data',
-      type=bool,
-      default=False,
-      help='Whether or not to balance the data by class when training the CNN'
-  )
-  parser.add_argument(
-      '--balance_LSTM_Data',
-      type=bool,
-      default=False,
-      help='Whether or not to balance the data by class when training the LSTM'
-  )
-  parser.add_argument(
-      '--loss_function',
-      type=str,
-      default='categorical_crossentropy',
-      help='Name of the loss function to be used in training (see keras documentation).'
-  )
-  parser.add_argument(
-      '--metrics',
-      type=str,
-      default='accuracy',
-      help='Metrics used to evaluate model.'
-  )
-
-FLAGS, unparsed = parser.parse_known_args()
-tm = Train_CNN_LSTM()
-tm.train()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser('CNN_LSTM training script', parents=[get_arguments()])
+    args = parser.parse_args()
+    main(args)
