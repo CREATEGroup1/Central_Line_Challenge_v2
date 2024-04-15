@@ -100,24 +100,24 @@ Outputs: (10,1) softmax output
   
 Train the network (replace paths as necessary):
 ```
-python C:/Users/SampleUser/Documents/Central_Line_Challenge/Task_Recognition/Train_CNN.py --save_location=C:/Users/SampleUser/Documents/taskDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
+python C:/Users/SampleUser/Documents/Central_Line_Challenge/Task_Recognition/Train_CNN_LSTM.py --save_location=C:/Users/SampleUser/Documents/taskDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
 ```
 #### Required flags:
 --save_location:   The folder where the trained model and all training information will be saved  
 --data_csv_file:   File containing all files and labels to be used for training  
 #### Optional flags:
---num_epochs_cnn: Number of epochs to run in training the cnn (int)  
---num_epochs_lstm: Number of epochs to run in training the lstm network(int)  
+--cnn_epochs: Number of epochs to run in training the cnn (int)  
+--lstm_epochs: Number of epochs to run in training the lstm network(int)  
 --validation_percentage: The percentage of data to be reserved for validation (float, range: 0-1)  
---batch_size: Number of images to be processed per batch (int)  
---cnn_learning_rate: Learning rate used for loss function optimization for cnn (float)  
---lstm_learning_rate: Learning rate used for loss function optimization for lstm network (float)  
---balance_CNN_Data: Balance the number of samples from each class for training CNN (bool, True or False)  
---balance_LSTM_Data: Balance the number of samples from each class for training LSTM (bool, True or False)  
---loss_function: loss function to optimize during training (str)  
---metrics: metrics used to evaluate the model (str) 
---sequence_length: number of consecutive images used as a single sequence (int)  
---downsampling_rate: number of frames to skip when generating training image sequences, used as a form of data augmentation (int)  
+--cnn_batch: Number of images to be processed per batch (int)  
+--lstm_batch: Number of images to be processed per batch (int)  
+--cnn_lr: Learning rate used for loss function optimization for cnn (float)  
+--lstm_lr: Learning rate used for loss function optimization for lstm network (float)  
+--balance_cnn: Balance the number of samples from each class for training CNN (bool, True or False)  
+--balance_lstm: Balance the number of samples from each class for training LSTM (bool, True or False)  
+--augment_cnn: Use augmentations when training CNN (bool, True or False)  
+--cnn_features: Number of features in last layer of CNN before the final softmax  
+--lstm_sequence_length: number of consecutive images used as a single sequence (int)  
 
 ### Subtask 3: Ultrasound probe segmentation using foundation models
 No baseline code is provided for subtask 3. However, you can start by exploring models such as SAM (Segment Anything Model). Your input should be a single image or a sequence of consecutive images. Your code should produce a single NumPy array for each segmentation (each NumPy array should be # of slices x image height x image width) 
