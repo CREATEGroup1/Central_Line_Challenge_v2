@@ -624,38 +624,43 @@ def calculateJaccardSeq(data,predictions,true_labels):
     return jacc_string
 
 def main(args):
-    torch.backends.cudnn.benchmark = True
-    print(args)
-    gpu = torch.device(args.device)
-    labelName = "Overall Task"
-    dataCSVFile = pandas.read_csv(args.data_csv_file)
-    num_classes = len(dataCSVFile[labelName].unique())
-    foldDir = args.save_location
-    if not os.path.exists(foldDir):
-        os.mkdir(foldDir)
-    args.save_location = foldDir
-    network = CNN_LSTM()
+    if args.save_location == "":
+        print("No save location specified. Please set flag --save_location")
+    elif args.data_csv_file == "":
+        print("No dataset specified. Please set flag --data_csv_file")
+    else:
+        torch.backends.cudnn.benchmark = True
+        print(args)
+        gpu = torch.device(args.device)
+        labelName = "Overall Task"
+        dataCSVFile = pandas.read_csv(args.data_csv_file)
+        num_classes = len(dataCSVFile[labelName].unique())
+        foldDir = args.save_location
+        if not os.path.exists(foldDir):
+            os.mkdir(foldDir)
+        args.save_location = foldDir
+        network = CNN_LSTM()
 
-    train_data,val_data = loadData(dataCSVFile,args.validation_percentage)
-    class_counts = train_data[labelName].value_counts()
-    classes = sorted(dataCSVFile[labelName].unique())
-    print(class_counts)
-    class_mapping = dict(zip([i for i in range(len(dataCSVFile[labelName].unique()))],
-                             sorted(dataCSVFile[labelName].unique())))
+        train_data,val_data = loadData(dataCSVFile,args.validation_percentage)
+        class_counts = train_data[labelName].value_counts()
+        classes = sorted(dataCSVFile[labelName].unique())
+        print(class_counts)
+        class_mapping = dict(zip([i for i in range(len(dataCSVFile[labelName].unique()))],
+                                 sorted(dataCSVFile[labelName].unique())))
 
-    num_input_features = args.cnn_features
-    resnetModel = network.createCNNModel(num_input_features, num_classes).cuda(gpu)
-    if not os.path.exists(os.path.join(foldDir, "resnet.pth")):
-        trainResnet(foldDir, resnetModel,train_data,val_data,args,labelName=labelName)
-    resnetModel = network.loadCNNModel(foldDir)
-    resnetModel.return_head = False
-    train_res_preds = getResnetFeatures(foldDir,"Train",train_data,resnetModel,args.device)
-    val_res_preds = getResnetFeatures(foldDir,"Validation",val_data,resnetModel,args.device)
+        num_input_features = args.cnn_features
+        resnetModel = network.createCNNModel(num_input_features, num_classes).cuda(gpu)
+        if not os.path.exists(os.path.join(foldDir, "resnet.pth")):
+            trainResnet(foldDir, resnetModel,train_data,val_data,args,labelName=labelName)
+        resnetModel = network.loadCNNModel(foldDir)
+        resnetModel.return_head = False
+        train_res_preds = getResnetFeatures(foldDir,"Train",train_data,resnetModel,args.device)
+        val_res_preds = getResnetFeatures(foldDir,"Validation",val_data,resnetModel,args.device)
 
 
-    writeLSTMConfig(foldDir, class_mapping, args.lstm_sequence_length, num_input_features,args.device)
-    lstm_model = network.createLSTMModel(num_input_features,len(classes))
-    trainLSTM(foldDir,lstm_model, train_data, val_data, train_res_preds, val_res_preds, args, labelName)
+        writeLSTMConfig(foldDir, class_mapping, args.lstm_sequence_length, num_input_features,args.device)
+        lstm_model = network.createLSTMModel(num_input_features,len(classes))
+        trainLSTM(foldDir,lstm_model, train_data, val_data, train_res_preds, val_res_preds, args, labelName)
 
 
 def adjust_learning_rate(lr, optimizer):
