@@ -41,7 +41,7 @@ def get_arguments():
         help='Path to the csv file containing locations for all data used in training'
     )
     parser.add_argument(
-        '--val_percentage',
+        '--validation_percentage',
         type=float,
         default=0.3,
         help='Percentage of samples to use for validation'
@@ -636,7 +636,7 @@ def main(args):
     args.save_location = foldDir
     network = CNN_LSTM()
 
-    train_data,val_data = loadData(dataCSVFile,args.val_percentage)
+    train_data,val_data = loadData(dataCSVFile,args.validation_percentage)
     class_counts = train_data[labelName].value_counts()
     classes = sorted(dataCSVFile[labelName].unique())
     print(class_counts)
