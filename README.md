@@ -89,7 +89,7 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train
 --workers: Number of worker threads for data loading  
 --device: device to use for training / testing (default 'cuda')  
 --include_blank: Include images that have no labels for training  
---val_iou_threshold: IoU threshold used for NMS when evaluating model
+--val_iou_threshold: IoU threshold used for NMS when evaluating model  
 --val_confidence_threshold: Confidence threshold used for NMS when evaluating model  
 
 ### Subtask 2: Workflow recognition
