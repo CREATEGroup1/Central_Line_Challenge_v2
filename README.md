@@ -65,7 +65,7 @@ Outputs: list of dictionaries with the form {'class': classname, 'xmin': int, 'x
   
 Train the network (replace paths as necessary):
 ```
-python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train_Yolov5.py --save_location=C:/Users/SampleUser/Documents/toolDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
+python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train_YOLOv5.py --save_location=C:/Users/SampleUser/Documents/toolDetectionRun1 --data_csv_file=C:/Users/SampleUser/Documents/Training_Data/Training_Data.csv
 ```
 #### Required flags:
 --save_location:   The folder where the trained model and all training information will be saved  
@@ -89,7 +89,7 @@ python C:/Users/SampleUser/Documents/Central_Line_Challenge/Tool_Detection/Train
 --workers: Number of worker threads for data loading  
 --device: device to use for training / testing (default 'cuda')  
 --include_blank: Include images that have no labels for training  
---val_iou_threshold: IoU threshold used for NMS when evaluating model
+--val_iou_threshold: IoU threshold used for NMS when evaluating model  
 --val_confidence_threshold: Confidence threshold used for NMS when evaluating model  
 
 ### Subtask 2: Workflow recognition
