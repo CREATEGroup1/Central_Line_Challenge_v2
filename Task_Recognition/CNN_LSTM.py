@@ -63,9 +63,13 @@ class CNN_LSTM:
             self.sequence = numpy.concatenate((self.sequence[:-1,],pred),axis=0)
             expanded_sequence = numpy.expand_dims(self.sequence,axis=0).astype(float)
             taskPrediction = self.lstm_model(torch.from_numpy(expanded_sequence).float().cuda(self.device))
+            taskPrediction = torch.softmax(taskPrediction[:, -1, :], dim=1)
+            class_num = torch.argmax(taskPrediction,dim=1)
+            class_num = class_num.cpu().numpy()
             taskPrediction = taskPrediction.cpu().numpy()
-            class_num = numpy.argmax(taskPrediction[0][-1])
-            networkOutput = str(self.task_class_mapping[class_num]) + str(taskPrediction)
+            class_num = class_num[0]
+            networkOutput = str(self.task_class_mapping[class_num]) + str([taskPrediction])
+            print(networkOutput)
             return networkOutput
 
     def createCNNModel(self,num_input_features,num_classes):
