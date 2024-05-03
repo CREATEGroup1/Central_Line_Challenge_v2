@@ -66,9 +66,9 @@ class CNN_LSTM:
             taskPrediction = torch.softmax(taskPrediction[:, -1, :], dim=1)
             class_num = torch.argmax(taskPrediction,dim=1)
             class_num = class_num.cpu().numpy()
-            taskPrediction = taskPrediction.cpu().numpy()
+            taskPrediction = taskPrediction.cpu().numpy().tolist()
             class_num = class_num[0]
-            networkOutput = str(self.task_class_mapping[class_num]) + str([taskPrediction])
+            networkOutput = str(self.task_class_mapping[class_num]) + str(taskPrediction)
             print(networkOutput)
             return networkOutput
 
