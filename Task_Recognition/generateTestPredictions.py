@@ -28,22 +28,20 @@ class Predict_CNN_LSTM:
             self.sequence_length = network.sequence_length
             num_features = network.num_features
             print(numClasses)
-            network.sequence = numpy.zeros((self.sequence_length,num_features))
+            network.sequence = numpy.ones((self.sequence_length,num_features)).astype(float)*1e-6
             for task in network.task_class_mapping:
                 if network.task_class_mapping[task]=="nothing":
                     nothingIndex = task
-            network.sequence[:,nothingIndex] = numpy.ones((self.sequence_length,))
-            columns = ["FileName", "Time Recorded","Overall Task"] #+ [network.task_class_mapping[i] for i in range(network.num_classes)]
+            columns =["FileName", "Time Recorded","Overall Task"]# ["FileName", "Time Recorded","Overall Task"] #+ [network.task_class_mapping[i] for i in range(network.num_classes)]
             predictions = pandas.DataFrame(columns=columns)
             predictions["FileName"] = self.dataCSVFile["FileName"]
-            predictions["Time Recorded"] = self.dataCSVFile["Time Recorded"]
+            #predictions["Time Recorded"] = self.dataCSVFile["Time Recorded"]
             initialFolder = self.dataCSVFile["Folder"][0]
             for i in self.dataCSVFile.index:
                 if i%500 == 0 or i==len(self.dataCSVFile.index)-1:
                     print("{}/{} predictions generated".format(i,len(self.dataCSVFile.index)))
                 if self.dataCSVFile["Folder"][i] != initialFolder:
-                    network.sequence = numpy.zeros((self.sequence_length, num_features))
-                    network.sequence[:, nothingIndex] = numpy.ones((self.sequence_length,))
+                    network.sequence = numpy.ones((self.sequence_length, num_features)).astype(float)*1e-6
                     initialFolder = self.dataCSVFile["Folder"][i]
                 image = Image.open(os.path.join(self.dataCSVFile["Folder"][i],self.dataCSVFile["FileName"][i]))
                 taskPrediction = network.predict(image)
@@ -70,9 +68,10 @@ if __name__ == '__main__':
   parser.add_argument(
       '--sequence_length',
       type=int,
-      default=50,
+      default=100,
       help='number of images in the sequences for task prediction'
   )
+
 
 FLAGS, unparsed = parser.parse_known_args()
 tm = Predict_CNN_LSTM()

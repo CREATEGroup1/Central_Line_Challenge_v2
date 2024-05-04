@@ -27,7 +27,7 @@ class CNN_LSTM:
         self.task_class_mapping = config["class_mapping"]
         self.sequence_length = config["sequence_length"]
         self.num_features = config["num_features"]
-        self.sequence = numpy.zeros((self.sequence_length, self.num_features))
+        self.sequence = numpy.ones((self.sequence_length, self.num_features)).astype(float)*1e-6
         self.num_classes = len([key for key in self.task_class_mapping])
         self.device = config["device"]
 
@@ -60,9 +60,9 @@ class CNN_LSTM:
             image = torch.from_numpy(numpy.array([img_tensor])).cuda(self.device)
             preds = self.cnn_model.forward(image)
             pred = preds.cpu().detach().numpy()
-            self.sequence = numpy.concatenate((self.sequence[:-1,],pred),axis=0)
+            self.sequence = numpy.concatenate((self.sequence[1:,],pred),axis=0)
             expanded_sequence = numpy.expand_dims(self.sequence,axis=0).astype(float)
-            taskPrediction = self.lstm_model(torch.from_numpy(expanded_sequence).float().cuda(self.device))
+            taskPrediction = self.lstm_model.forward(torch.from_numpy(expanded_sequence).float().cuda(self.device))
             taskPrediction = torch.softmax(taskPrediction[:, -1, :], dim=1)
             class_num = torch.argmax(taskPrediction,dim=1)
             class_num = class_num.cpu().numpy()
