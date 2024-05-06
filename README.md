@@ -36,7 +36,7 @@ Training data can be downloaded in 11 parts using the following links: [Part 1](
 Unlabelled data can be found [here](https://queensuca-my.sharepoint.com/:f:/g/personal/11rjh10_queensu_ca/EmeiBTMf99VHo9jB0uZW2b4BfXQyEm9UFdYQEVFWQe-G9w). Participants may upload labels using the following form until 11:59pm EST May 3rd, 2024: [Upload labels for review](https://docs.google.com/forms/d/e/1FAIpQLSeEYi_e15ePejBbt0VZ0mQW13Y3eDluPST4DFsPi8RmzvAIwQ/viewform). As submissions pass through the review process they will be made available [here](https://queensuca-my.sharepoint.com/:f:/g/personal/11rjh10_queensu_ca/EjDhNL_DbcVNhfTn10upNIIBNMPQCsxEQImBLDS7Nq2n8A).   
   
 #### Test Data:
-Test data can be downloaded using the following link on May 6th, 2024: 
+Test data can be downloaded using the following link on May 6th, 2024 [here] https://queensuca-my.sharepoint.com/:u:/g/personal/11rjh10_queensu_ca/EUD1FQjlk3tHkYRwuILnzW4B6l1rlQlR8_upXd_XqLPJWw?download=1
 
 ## Prepare Dataset for Training
 Once all parts of the dataset have been downloaded for training, download code or clone this repository. Navigate to the location where the code is located and use the prepareDataset.py script to unpack and format your dataset. The script can be run by entering the following lines into your command prompt (replace all instances of UserName with your real username):  
