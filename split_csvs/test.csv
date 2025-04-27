@@ -1,0 +1,11 @@
+,VideoID,VideoName,Annotator,IsAnnotatorMS,AnnotatorNumber,InSettingB,num_frames_total,num_frames_with_tool_ultrasound,num_frames_with_tool_syringe,num_frames_with_tool_anesthetic,num_frames_with_tool_guidewire_casing,num_frames_with_tool_guidewire,num_frames_with_tool_scalpel,num_frames_with_tool_dilator,num_frames_with_tool_catheter
+0,161248,AN01-20210104-161248,AN01,False,1,False,1259,291,214,9,144,548,11,829,153
+1,131328,AN02-20210107-131328,AN02,False,2,False,1773,1735,326,77,126,542,23,55,291
+2,153206,AN04-20210216-153206,AN04,False,4,False,1177,1170,188,21,84,600,8,0,145
+3,140315,MS01-20200210-140315,MS01,True,1,True,897,456,97,17,74,480,7,24,111
+4,143115,MS01-20200210-143115,MS01,True,1,True,889,351,138,21,82,265,6,25,244
+5,152827,MS02-20200210-152827,MS02,True,2,True,2591,857,178,64,633,1328,31,25,383
+6,180907,MS04-20200213-180907,MS04,True,4,True,2457,699,397,43,313,895,22,55,404
+7,181521,MS04-20200213-181521,MS04,True,4,True,1000,295,169,28,90,440,7,35,155
+8,123321,MS05-20210207-123321,MS05,True,5,False,2966,1104,714,37,80,1053,8,46,328
+9,124429,MS05-20210207-124429,MS05,True,5,False,2455,770,476,0,283,1086,84,34,180
