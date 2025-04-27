@@ -1,6 +1,10 @@
 # EDITS
 
-Central Line Challenge code, but updated to apply weighted train-val-test split to dataset
+Central Line Challenge code, but updated to apply weighted train-val-test split to dataset if argument "--apply-split" is provided to `prepareDataset.py` as follows:
+
+```
+python prepareDataset.py --compressed_location=C:/Users/UserName/Downloads --target_location=C:/Users/UserName/Documents/CreateChallenge --dataset_type=Train --apply-split  
+```  
 
 
 ---
