@@ -1,3 +1,10 @@
+# EDITS
+
+Central Line Challenge code, but updated to apply weighted train-val-test split to dataset
+
+
+---
+
 # Central_Line_Challenge
 For those using the School of Computing GPU Server, you may skip directly to training the networks step. The required anaconda environment has already been created for you, and the dataset has been pre-downloaded and prepared for you in advance. The following instructions explain how to reproduce the setup on a local computer.
 
