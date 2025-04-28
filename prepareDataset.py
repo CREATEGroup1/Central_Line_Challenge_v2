@@ -105,32 +105,11 @@ def splitTrainingData(mainDirectory):
 
         for index, row in dir_df.iterrows():
             vname = row['VideoName']
-            print(f"Transferring data from video: {vname} (frames {row['first_file']} to {row['last_file']})")
-
+            print(f"Transferring data from video: {vname}")
             from_dir = os.path.join(mainDirectory, vname)
             to_dir = os.path.join(dir_path, vname)
+            shutil.move(from_dir, to_dir)
 
-            if os.path.exists(to_dir):
-                to_dir = to_dir + "_1"   # ex. AN01-20210104-154854 -> AN01-20210104-154854_1
-
-            os.mkdir(to_dir)
-
-            for fname in os.listdir(from_dir):
-                if not fname.endswith('.csv') and row['first_file'] <= fname and fname <= row['last_file']:
-                    from_path = os.path.join(from_dir, fname)
-                    to_path = os.path.join(to_dir, fname)
-                    shutil.move(from_path, to_path)
-
-            # Handle csv
-            csv_file = [fname for fname in os.listdir(from_dir) if fname.endswith('.csv')][0]
-            orig_df = pandas.read_csv(os.path.join(from_dir, csv_file))
-
-            print("Copying CSV...")
-            start_split_idx = orig_df.index[orig_df['FileName'] == row['first_file']][0]
-            end_split_idx = orig_df.index[orig_df['FileName'] == row['last_file']][0]
-            new_df = orig_df.iloc[start_split_idx:end_split_idx + 1]
-            new_df.to_csv(os.path.join(to_dir, csv_file))
-    
         createMainDatasetCSV(dir_path, 'Train')
 
     for dir_name in os.listdir(mainDirectory):
