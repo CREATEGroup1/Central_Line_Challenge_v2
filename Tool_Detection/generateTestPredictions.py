@@ -3,10 +3,11 @@ import cv2
 import pandas
 import argparse
 from YOLOv5 import YOLOv5
+from ultralytics import YOLO
 
 def getPredictions(args):
     modelFolder = args.save_location
-    model = YOLOv5()
+    model = YOLO()
     model.loadModel(modelFolder)
     data_csv = pandas.read_csv(args.data_csv_file)
     predictions = None
