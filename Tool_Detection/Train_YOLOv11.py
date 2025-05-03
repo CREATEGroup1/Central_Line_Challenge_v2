@@ -353,7 +353,7 @@ def setAugmentationParams(saveDir):
     config['hsv_v']=0.5 # image HSV-Value augmentation (fraction)
     config['degrees']=0.0 # image rotation (+/- deg)
     config['translate']=0.3 # image translation (+/- fraction)
-    config['scale']=2.0 # image scale (+/- gain)
+    config['scale']=1.0 # image scale (+/- gain)
     config['shear']=1.0 # image shear (+/- deg)
     config['perspective']=0.001 # image perspective (+/- fraction), range 0-0.001
     config['mosaic']=0.4 # image mosaic (probability)
