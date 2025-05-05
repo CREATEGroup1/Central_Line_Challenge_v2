@@ -10,6 +10,8 @@ class YOLOv11:
         self.class_mapping = None
 
     def loadModel(self,modelFolder,modelName=None):
+        print("="*200)
+        print(os.path.join(modelFolder,"train/weights/best.pt"))
         self.model = YOLO(os.path.join(modelFolder,"train/weights/best.pt"))
         self.model_config = os.path.join(modelFolder,"model_config.yaml")
         with open(os.path.join(modelFolder,"config.yaml"),"r") as f:
