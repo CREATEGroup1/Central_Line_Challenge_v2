@@ -15,6 +15,7 @@ import torch
 import scipy
 import yaml
 import random
+import wandb
 import sklearn
 import sklearn.metrics
 from matplotlib import pyplot as plt
@@ -43,21 +44,40 @@ def get_arguments():
     parser.add_argument(
         '--validation_percentage',
         type=float,
-        default=0.3,
+        default=0.1,
         help='Percentage of samples to use for validation'
     )
+    parser.add_argument(
+        '--patience',
+        type=int,
+        default=4,
+        help='Number of epochs to wait for improvement before stopping training'
+    )
+    parser.add_argument(
+        '--preset_data_split',
+        type=bool,
+        default=True,
+        help='Use preset data split for training and validation'
+    )
+    parser.add_argument(
+        '--val_data_csv_file',
+        type=str,
+        default='D:\Olivia\Central_Line_Challenge\Training_Data\Validation_Data\Validation_Data.csv',
+        help='Path to the csv file containing locations for all data used in validation'
+    )
+
     ## CNN Parameters ##
     parser.add_argument(
         '--cnn_epochs',
         type=int,
         default=100,
-        help='number of epochs for training lstm'
+        help='number of epochs for training CNN'
     )
     parser.add_argument(
         '--cnn_batch',
         type=int,
         default=16,
-        help='batch size for training / validation of lstm'
+        help='batch size for training / validation of CNN'
     )
     parser.add_argument(
         '--balance_cnn',
@@ -68,7 +88,7 @@ def get_arguments():
     parser.add_argument(
         '--augment_cnn',
         type=bool,
-        default=False,
+        default=True,
         help='Use augmentations when training CNN'
     )
     parser.add_argument(
@@ -106,7 +126,7 @@ def get_arguments():
     parser.add_argument(
         '--balance_lstm',
         type=bool,
-        default=False,
+        default=True,
         help='Balance number of samples in each class for training'
     )
     parser.add_argument(
@@ -138,6 +158,23 @@ def loadData(datacsv,val_percentage):
         datasets.append(data)
     return datasets
 
+def loadPresetData(traindatacsv,valdatacsv):
+    num_val_samples = len(valdatacsv.index)
+    val_indexes = valdatacsv.index[0:num_val_samples]
+    train_indexes = traindatacsv.index
+    sets = {"Train": train_indexes, "Validation": val_indexes}
+    datasets = []
+    for learning_set in sets:
+        print("Parsing {} data".format(learning_set.lower()))
+        if learning_set == "Train":
+            data = traindatacsv.iloc[sets[learning_set]].copy()
+        else:
+            data = valdatacsv.iloc[sets[learning_set]].copy()
+        data.index = [i for i in range(len(data.index))]
+        data["Set"] = [learning_set for i in data.index]
+        datasets.append(data)
+    return datasets
+
 def invert_class_mapping(class_mapping):
     inverted_mapping = {}
     for key in class_mapping:
@@ -156,6 +193,7 @@ def writeLSTMConfig(foldDir,class_mapping, sequence_length, num_input_features,d
 def writeResultsToFile(saveLocation,resultsDict,confmat):
     linesToWrite = []
     for key in resultsDict:
+        print("{}: {}".format(key,resultsDict[key]))
         if "Train" in key or "Val" in key:
             linesToWrite.append("\n{}: {}".format(key, resultsDict[key][-1]))
         else:
@@ -211,6 +249,9 @@ def trainResnet(foldDir, model,training_data,val_data,args,labelName="Overall Ta
                    "Val accuracy": [],
                    "Final Val loss": None,
                    "Final Val accuracy": None}
+    
+    print(val_data[labelName].unique())
+    print(training_data[labelName].unique())
     train_dataset = CNNDataset(training_data, labelName, transforms,balance=args.balance_cnn,augmentations = args.augment_cnn)
     val_dataset = CNNDataset(val_data, labelName, transforms,balance=False)
     train_loader = torch.utils.data.DataLoader(
@@ -218,7 +259,9 @@ def trainResnet(foldDir, model,training_data,val_data,args,labelName="Overall Ta
         batch_size=args.cnn_batch,
         shuffle=True,
         num_workers=1,
-        pin_memory=True
+        pin_memory=True,
+        prefetch_factor=2 #preload batches - Olivia
+
     )
 
     val_loader = torch.utils.data.DataLoader(
@@ -226,18 +269,28 @@ def trainResnet(foldDir, model,training_data,val_data,args,labelName="Overall Ta
         batch_size=args.cnn_batch,
         num_workers=1,
         pin_memory=True,
+        prefetch_factor=2 #preload batches - Olivia
     )
     classes = sorted(training_data[labelName].unique())
     lr = args.cnn_lr
+    patience = args.patience
     optimizer = optim.Adam(model.parameters(),lr=lr)
-    loss_fn = nn.CrossEntropyLoss()
+    class_counts = training_data[labelName].value_counts()
+    print("Class counts: {}".format(class_counts))
+    class_weights = 1.0 / torch.tensor(class_counts.values, dtype=torch.float32).cuda()
+    print("Class weights: {}".format(class_weights))
+    loss_fn = nn.CrossEntropyLoss(weight=class_weights)
+    # loss_fn = nn.CrossEntropyLoss()
     tool_loss = nn.BCEWithLogitsLoss()
+
+    # add optimizer and loss fcn to wandb
+    wandb.config.update({"resnet optimizer": optimizer, "resnet loss_function": loss_fn, "resnet tool_loss": tool_loss})
 
 
     min_loss = 1e6
     num_epoch_without_improvement = 0
     for epoch in range(0, args.cnn_epochs):
-        if num_epoch_without_improvement >= 4:
+        if num_epoch_without_improvement >= patience:
             print("Early stopping")
             break
         if num_epoch_without_improvement > 0 and num_epoch_without_improvement % 2 == 0:
@@ -328,6 +381,15 @@ def trainResnet(foldDir, model,training_data,val_data,args,labelName="Overall Ta
             num_epoch_without_improvement = 0
         else:
             num_epoch_without_improvement += 1
+        
+        # log the results to wandb
+        wandb.log({
+            "Resnet Train loss": train_loss,
+            "Resnet Train accuracy": train_accuracy,
+            "Resnet Val loss": val_loss,
+            "Resnet Val accuracy": val_accuracy,
+        })
+
         print("Epoch: {} - Train loss: {}, Train accuracy: {}, Val loss: {}, Val accuracy: {}".format(epoch, train_loss,
                                                                                                       train_accuracy,
                                                                                                       val_loss,
@@ -369,6 +431,16 @@ def trainResnet(foldDir, model,training_data,val_data,args,labelName="Overall Ta
     saveTrainingPlot(foldDir, resultsDict, "loss")
     saveTrainingPlot(foldDir, resultsDict, "accuracy")
 
+    # wandb.log({
+    #     "Resnet Confusion Matrix": wandb.plot.confusion_matrix(
+    #         probs=None,
+    #         y_true=true_labels,
+    #         preds=pred_labels,
+    #         class_names=classes
+    #     )
+    # })
+
+
 def getResnetFeatures(foldDir,set_name,data,resnetModel,device):
     if not os.path.exists(os.path.join(foldDir,"{}_resnet.npy".format(set_name))):
         res_preds = getResnetPredictions(data,resnetModel,device)
@@ -379,6 +451,7 @@ def getResnetFeatures(foldDir,set_name,data,resnetModel,device):
 
 def trainLSTM(foldDir,lstm_model,train_data,val_data,train_res_preds,val_res_preds,args,labelName="Overall Task"):
     gpu = torch.device(args.device)
+    patience = args.patience
     classes = sorted(list(set([x for x in train_data[labelName].unique()]+[x for x in val_data[labelName].unique()])))
     lstm_model.cuda(gpu)
     resultsDict = {"Model name": "LSTM",
@@ -410,15 +483,22 @@ def trainLSTM(foldDir,lstm_model,train_data,val_data,train_res_preds,val_res_pre
     )
 
     lr = args.lstm_lr
-    optimizer = optim.Adam(lstm_model.parameters(), lr=lr)
+    optimizer = optim.Adam(lstm_model.parameters(), lr=lr, weight_decay=1e-4)
     loss_fn = nn.CrossEntropyLoss()
+
+    # learning rate scheduler - Olivia
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, patience=5)
+    
+    # add optimizer and loss fcn to wandb
+    wandb.config.update({"lstm optimizer": optimizer, "lstm loss_function": loss_fn})
+
 
 
     min_loss = 1e6
     num_epoch_without_improvement = 0
     if not os.path.exists(os.path.join(foldDir, "lstm.pth")):
         for epoch in range(0, args.lstm_epochs):
-            if num_epoch_without_improvement >= 4:
+            if num_epoch_without_improvement >= patience:
                 print("Early stopping")
                 break
             if num_epoch_without_improvement > 0 and num_epoch_without_improvement % 2 == 0:
@@ -514,6 +594,19 @@ def trainLSTM(foldDir,lstm_model,train_data,val_data,train_res_preds,val_res_pre
                 num_epoch_without_improvement = 0
             else:
                 num_epoch_without_improvement += 1
+
+            
+            # update the learning rate - Olivia
+            scheduler.step(val_loss)
+
+            # log the results to wandb
+            wandb.log({
+                "LSTM Train loss": train_loss,
+                "LSTM Train accuracy": train_accuracy,
+                "LSTM Val loss": val_loss,
+                "LSTM Val accuracy": val_accuracy,
+            })
+
             print("Epoch: {} - Train loss: {}, Train accuracy: {}, Val loss: {}, Val accuracy: {}".format(epoch,
                                                                                                           train_loss,
                                                                                                           train_accuracy,
@@ -561,12 +654,44 @@ def trainLSTM(foldDir,lstm_model,train_data,val_data,train_res_preds,val_res_pre
     print("Final Testing Stats: loss: {}, accuracy: {}".format(val_loss, val_accuracy))
     print(confMat)
     jaccard = calculateJaccardSeq(val_data, seq_preds, true_labels)
+    f1_scores = calculateF1Seq(val_data, seq_preds, true_labels)
     resultsDict["Final Val loss"] = [val_loss]
     resultsDict["Final Val accuracy"] = [val_accuracy]
-    resultsDict["Jaccard"] = jaccard
+    # resultsDict["Val Jaccard"] = [jaccard]
+    # resultsDict["Val F1 Scores"] = [f1_scores]
+
+    print("Jaccard: {}".format(jaccard))
+    print("F1 Scores: {}".format(f1_scores))
+
+    # log the results to wandb
+    wandb.log({
+        "LSTM Val loss": val_loss,
+        "LSTM Val accuracy": val_accuracy,
+        "LSTM Val Jaccard": jaccard,
+        "LSTM Val F1 Scores": f1_scores,
+        # "LSTM Confusion Matrix": wandb.plot.confusion_matrix(
+        #     probs=None,
+        #     y_true=true_labels,
+        #     preds=pred_labels,
+        #     class_names=classes
+        # )
+    })
+
     writeResultsToFile(foldDir, resultsDict, confMat)
     saveTrainingPlot(foldDir, resultsDict, "loss")
     saveTrainingPlot(foldDir, resultsDict, "accuracy")
+    # saveTrainingPlot(foldDir, resultsDict, "Jaccard")
+    # saveTrainingPlot(foldDir, resultsDict, "F1 Scores")
+
+    # wandb.log({
+    #     "LSTM Jaccard": wandb.plot.line(
+    #         x=[x for x in range(len(resultsDict["Jaccard"]))],
+    #         y=resultsDict["Jaccard"],
+    #         title="Jaccard Score",
+    #         xname="Epochs",
+    #         yname="Jaccard Score"
+    #     )
+    # })
 
 def customCELoss(loss_function,y_pred,y_true):
     sequence_loss = 0
@@ -623,6 +748,45 @@ def calculateJaccardSeq(data,predictions,true_labels):
     jacc_string += "\nOverall: {}".format(jaccard)
     return jacc_string
 
+def calculateF1Seq(data, predictions, true_labels):
+    """
+    Calculate the F1 score for each video and overall, using a sequence-based approach.
+    """
+    videos = data["Folder"].unique()
+    overall_min_idx = data.index[0]
+    sequence_length = predictions.shape[-1]
+    all_preds = []
+    all_true = []
+    f1_string = "F1 Scores:"
+    
+    for vid in videos:
+        vid_data = data.loc[data["Folder"] == vid]
+        vid_preds = []
+        true_task = true_labels[vid_data.index[0] - overall_min_idx:vid_data.index[-1] - overall_min_idx + 1]
+        
+        for i in range(vid_data.index[0] - overall_min_idx, vid_data.index[-1] - overall_min_idx + 1):
+            frame_preds = []
+            initial_idx = -1
+            for j in range(i, min(true_labels.shape[0], i + sequence_length)):
+                frame_preds.append(predictions[j][initial_idx])
+                initial_idx -= 1
+            most_common = scipy.stats.mode(numpy.array(frame_preds))[0]
+            vid_preds.append(most_common)
+            all_preds.append(most_common)
+            all_true.append(true_task[i - (vid_data.index[0] - overall_min_idx)])
+        
+        # Calculate F1 score for the current video
+        f1 = sklearn.metrics.f1_score(true_task, vid_preds, average='weighted')
+        print(f"{vid}: {f1}")
+        f1_string += f"\n{vid}: {f1}"
+    
+    # Calculate overall F1 score
+    overall_f1 = sklearn.metrics.f1_score(all_true, all_preds, average='weighted')
+    print(f"Overall F1: {overall_f1}")
+    f1_string += f"\nOverall: {overall_f1}"
+    
+    return f1_string
+
 def main(args):
     if args.save_location == "":
         print("No save location specified. Please set flag --save_location")
@@ -634,6 +798,8 @@ def main(args):
         gpu = torch.device(args.device)
         labelName = "Overall Task"
         dataCSVFile = pandas.read_csv(args.data_csv_file)
+        if args.preset_data_split:
+            val_data_csv_file = pandas.read_csv(args.val_data_csv_file) if args.preset_data_split else None
         num_classes = len(dataCSVFile[labelName].unique())
         foldDir = args.save_location
         if not os.path.exists(foldDir):
@@ -641,16 +807,61 @@ def main(args):
         args.save_location = foldDir
         network = CNN_LSTM()
 
-        train_data,val_data = loadData(dataCSVFile,args.validation_percentage)
+        # preset train val split - Olivia
+        if args.preset_data_split:
+            train_data,val_data = loadPresetData(dataCSVFile,val_data_csv_file)
+        else:
+            train_data,val_data = loadData(dataCSVFile,args.validation_percentage)
+
+        # save training file names to csv - Olivia
+        train_data.to_csv(os.path.join(foldDir, "train_data.csv"), index=False)
+        val_data.to_csv(os.path.join(foldDir, "val_data.csv"), index=False)
+
         class_counts = train_data[labelName].value_counts()
         classes = sorted(dataCSVFile[labelName].unique())
         print(class_counts)
         class_mapping = dict(zip([i for i in range(len(dataCSVFile[labelName].unique()))],
                                  sorted(dataCSVFile[labelName].unique())))
 
+        # Start a new wandb run to track this script.
+        run = wandb.init(
+            project="Task 2",
+            entity="createchallenge-group1-queen-s-university",
+            config={
+                "dataset": args.data_csv_file,
+                "num_classes": num_classes,
+                "class_counts": class_counts,
+                "learning_rate": args.cnn_lr,
+                "patience": args.patience,
+                "preset_data_split": args.preset_data_split,
+                "val_data_csv_file": args.val_data_csv_file,
+                "architecture": "CNN_LSTM",
+                "epochs": args.cnn_epochs,
+                "batch_size": args.cnn_batch,
+                "num_features": args.cnn_features,
+                "sequence_length": args.lstm_sequence_length,
+                "balance_cnn": args.balance_cnn,
+                "augment_cnn": args.augment_cnn,
+                
+                "balance_lstm": args.balance_lstm,
+                "lstm_epochs": args.lstm_epochs,
+                "lstm_batch": args.lstm_batch,
+                "lstm_lr": args.lstm_lr,
+                
+                "validation_percentage": args.validation_percentage,
+                "train_data": len(train_data),
+                "val_data": len(val_data),
+            },
+            name=foldDir.split("/")[-1],
+            dir=foldDir
+        )
+        wandb.run.save()
+
+
         num_input_features = args.cnn_features
         resnetModel = network.createCNNModel(num_input_features, num_classes).cuda(gpu)
         if not os.path.exists(os.path.join(foldDir, "resnet.pth")):
+            print("Training Resnet")
             trainResnet(foldDir, resnetModel,train_data,val_data,args,labelName=labelName)
         resnetModel = network.loadCNNModel(foldDir)
         resnetModel.return_head = False
@@ -660,6 +871,7 @@ def main(args):
 
         writeLSTMConfig(foldDir, class_mapping, args.lstm_sequence_length, num_input_features,args.device)
         lstm_model = network.createLSTMModel(num_input_features,len(classes))
+        print("training lstm")
         trainLSTM(foldDir,lstm_model, train_data, val_data, train_res_preds, val_res_preds, args, labelName)
 
 
